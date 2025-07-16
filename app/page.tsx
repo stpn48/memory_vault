@@ -1,5 +1,13 @@
-import Image from "next/image";
+"use client";
+
+import { useAuthActions } from "@convex-dev/auth/react";
 
 export default function Home() {
-  return <div>zmrd</div>;
+  const { signOut } = useAuthActions();
+  return (
+    <div>
+      zmrd
+      <button onClick={() => signOut()}>sign out</button>
+    </div>
+  );
 }
