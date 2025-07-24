@@ -12,7 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
-import { Loader } from "lucide-react";
+import { Loader, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Props = {};
@@ -66,7 +66,9 @@ export function CreateMemory({}: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>Create Memory</DialogTrigger>
+      <DialogTrigger className="cursor-pointer group">
+        <Plus className="size-4 group-hover:text-secondary-foreground/80 transition-all" />
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New Memory</DialogTitle>
