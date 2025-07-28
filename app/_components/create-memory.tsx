@@ -66,8 +66,13 @@ export function CreateMemory({}: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="cursor-pointer group">
-        <Plus className="size-4 group-hover:text-secondary-foreground/80 transition-all" />
+      <DialogTrigger
+        asChild
+        className="absolute bottom-4 right-4 cursor-pointer "
+      >
+        <Button className="rounded-full w-10 h-10 hover:scale-105 transition-all p-4">
+          <Plus className="size-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

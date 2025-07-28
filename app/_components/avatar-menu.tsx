@@ -26,8 +26,11 @@ export function AvatarMenu({}: Props) {
   const { signOut } = useAuthActions();
 
   if (currentUser === undefined) {
-    // loading
-    return;
+    return (
+      <Avatar>
+        <AvatarFallback className="animate-pulse"></AvatarFallback>
+      </Avatar>
+    );
   }
 
   if (!currentUser) {

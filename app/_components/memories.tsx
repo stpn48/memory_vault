@@ -3,6 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
+import { Images } from "lucide-react";
 
 type Props = {};
 
@@ -34,27 +35,21 @@ export function Memories({}: Props) {
     );
   }
 
-  const isGrid = userMemories.length > 3;
-
   return (
-    <div
-      className={
-        isGrid
-          ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-          : "flex gap-4 flex-wrap"
-      }
-    >
+    <div className={"flex justify-center gap-8 flex-wrap"}>
       {userMemories.map((memory) => (
-        <div
-          className="flex flex-col gap-[2px]"
-          key={memory._id}
-          style={{ width: isGrid ? "100%" : "300px" }}
-        >
-          <div className="border-2 text-sm rounded-lg cursor-pointer hover:ring-2 ring-secondary p-2 w-full">
+        <div className="flex w-[300px] flex-col gap-[2px]" key={memory._id}>
+          <div className="border-2 flex justify-between text-sm items-center rounded-lg cursor-pointer hover:ring-2 ring-secondary p-3 w-full">
             {memory.content.length > 20
               ? `${memory.content.substring(0, 20)}...`
               : memory.content}
+
+            <div className="flex text-secondary text-xs items-center gap-1">
+              0
+              <Images className="text-secondary size-4" />
+            </div>
           </div>
+
           <div className="flex flex-row-reverse">
             <p className="text-xs text-secondary-foreground/50">
               from:{" "}
