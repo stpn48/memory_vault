@@ -1,8 +1,8 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { Loader } from "lucide-react";
 
 type Props = {};
 
@@ -11,13 +11,25 @@ export function Memories({}: Props) {
 
   if (userMemories === undefined) {
     return (
-      <div className="w-full flex justify-center">
-        <div className="flex flex-col gap-1 items-center">
-          <p className="text-xs animate-pulse text-secondary-foreground/50">
-            Loading
-          </p>
-          <Loader className="animate-spin size-4" />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div className="flex flex-col w-full gap-[2px]" key={i}>
+            <Skeleton className="h-[40px] w-full" />
+            <div className="flex flex-row-reverse">
+              <Skeleton className="h-[16px] !rounded-sm w-[150px]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (userMemories.length === 0) {
+    return (
+      <div className="mb-20 w-full flex-1 flex flex-col items-center justify-center">
+        <p className="text-xs text-secondary-foreground/50">
+          No memories yet...
+        </p>
       </div>
     );
   }
