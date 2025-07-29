@@ -35,8 +35,8 @@ export function CreateMemory({}: Props) {
       return;
     }
 
-    if (content.length > 350) {
-      setError("Memory content must be less than 350 characters.");
+    if (content.length > 9999) {
+      setError("Memory content must be less than 10000 characters.");
       return;
     }
 
@@ -84,6 +84,7 @@ export function CreateMemory({}: Props) {
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Textarea
+            className="overflow-scroll max-h-[500px]"
             disabled={isLoading}
             name="content"
             placeholder="Write your memory here"

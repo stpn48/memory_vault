@@ -1,7 +1,15 @@
 "use client";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { Images } from "lucide-react";
 
@@ -38,7 +46,17 @@ export function Memories({}: Props) {
   return (
     <div className={"flex justify-center gap-8 flex-wrap"}>
       {userMemories.map((memory) => (
-        <div className="flex w-[300px] flex-col gap-[2px]" key={memory._id}>
+        <MemoryCard memory={memory} key={memory._id} />
+      ))}
+    </div>
+  );
+}
+
+function MemoryCard({ memory }: { memory: Doc<"memories"> }) {
+  return (
+    <Dialog>
+      <div className="flex w-[300px] flex-col gap-[2px]">
+        <DialogTrigger>
           <div className="border-2 flex justify-between text-sm items-center rounded-lg cursor-pointer hover:ring-2 ring-secondary p-3 w-full">
             {memory.content.length > 20
               ? `${memory.content.substring(0, 20)}...`
@@ -49,21 +67,38 @@ export function Memories({}: Props) {
               <Images className="text-secondary size-4" />
             </div>
           </div>
+        </DialogTrigger>
 
-          <div className="flex flex-row-reverse">
-            <p className="text-xs text-secondary-foreground/50">
-              from:{" "}
-              {new Date(memory._creationTime).toLocaleString(undefined, {
-                year: "numeric",
-                month: "numeric",
-                day: "numeric",
-                hour: "numeric",
-                minute: "numeric",
-              })}{" "}
-            </p>
+        <div className="flex flex-row-reverse">
+          <p className="text-xs text-secondary-foreground/50">
+            from:{" "}
+            {new Date(memory._creationTime).toLocaleString(undefined, {
+              year: "numeric",
+              month: "numeric",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+            })}{" "}
+          </p>
+        </div>
+      </div>
+
+      <DialogContent className="max-h-[80%] overflow-auto flex flex-col">
+        <DialogHeader>
+          <DialogDescription>
+            <p>{memory.content}</p>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 min-h-[300px] flex justify-center items-center">
+          <div className="flex flex-col items-center gap-2">
+            <Images className="size-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              No Images for this memory...
+            </span>
           </div>
         </div>
-      ))}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
