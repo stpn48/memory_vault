@@ -11,9 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { catchErrorAsync } from "@/lib/catch-error";
 import { useMutation } from "convex/react";
 import { Loader, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Dropzone } from "../../components/dropzone";
 
 type Props = {};
 
@@ -21,8 +24,10 @@ export function CreateMemory({}: Props) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
 
   const createMemory = useMutation(api.memories.createMemory);
+  const createUploadUrl = useMutation(api.memories.createUploadUrl);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,10 +50,34 @@ export function CreateMemory({}: Props) {
       return;
     }
 
+    const imageIds: Id<"_storage">[] = [];
+
+    for (const file of files) {
+      // Ask Convex for an upload URL
+      const uploadUrl = await createUploadUrl();
+
+      // POST file to the upload URL
+      const { error: uploadImageError } = await catchErrorAsync(async () => {
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        const { storageId } = await res.json();
+        imageIds.push(storageId as Id<"_storage">);
+      });
+
+      if (uploadImageError) {
+        setError(uploadImageError);
+        return;
+      }
+    }
+
     setError(null);
 
     setIsLoading(true);
-    await createMemory({ content });
+    await createMemory({ content, imageIds });
     setIsLoading(false);
 
     setOpen(false);
@@ -84,11 +113,24 @@ export function CreateMemory({}: Props) {
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Textarea
-            className="overflow-scroll max-h-[500px]"
+            className="overflow-scroll resize-none !max-h-[500px]"
             disabled={isLoading}
             name="content"
             placeholder="Write your memory here"
           ></Textarea>
+
+          <Dropzone
+            onDrop={(accepted) => {
+              if (accepted.length + files.length > 5) {
+                setError("You can upload up to 5 images only.");
+                return;
+              }
+              setFiles((prev) => [...prev, ...accepted]);
+            }}
+            accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+          />
+
+          <p>{files.length}</p>
 
           {error && <p className="text-red-500 text-xs">{error}</p>}
 

@@ -8,6 +8,7 @@ const schema = defineSchema({
   memories: defineTable({
     userId: v.id("users"),
     content: v.string(),
+    imageIds: v.array(v.id("_storage")),
   }),
 });
 
