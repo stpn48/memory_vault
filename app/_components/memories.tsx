@@ -72,9 +72,11 @@ function MemoryCard({
               : memory.content}
 
             {memory.imageIds.length > 0 && (
-              <div className="flex text-secondary text-xs items-center gap-1">
-                {memory.imageIds.length}
-                <Images className="text-secondary size-4" />
+              <div className="flex text-xs items-center gap-1">
+                <p className="text-muted-foreground">
+                  {memory.imageIds.length}
+                </p>
+                <Images className="text-muted-foreground size-4" />
               </div>
             )}
           </div>
@@ -89,25 +91,25 @@ function MemoryCard({
               day: "numeric",
               hour: "numeric",
               minute: "numeric",
-            })}{" "}
+            })}
           </p>
         </div>
       </div>
 
-      <DialogContent className="max-h-[80%] min-h-[40%] overflow-auto flex flex-col">
+      <DialogContent className="max-h-[80%] min-h-[40%] overflow-auto gap-10 flex flex-col">
         <DialogHeader>
           <VisuallyHidden>
             <DialogTitle>Memory details</DialogTitle>
           </VisuallyHidden>
-          <DialogDescription>{memory.content}</DialogDescription>
+          <DialogDescription className="text-foreground text-sm">
+            {memory.content}
+          </DialogDescription>
         </DialogHeader>
-
         {memory.imageUrls.length > 0 && (
           <div className="flex flex-1 items-center justify-center w-full">
             <ImagesStack imageUrls={memory.imageUrls} />
           </div>
         )}
-
         {memory.imageUrls.length === 0 && (
           <div className="flex-1 min-h-[300px] flex justify-center items-center">
             <div className="flex flex-col items-center gap-2">
@@ -118,6 +120,16 @@ function MemoryCard({
             </div>
           </div>
         )}
+        <p className="text-xs text-muted-foreground">
+          from:{" "}
+          {new Date(memory._creationTime).toLocaleString(undefined, {
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+          })}
+        </p>
       </DialogContent>
     </Dialog>
   );
