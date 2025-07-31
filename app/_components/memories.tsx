@@ -71,10 +71,12 @@ function MemoryCard({
               ? `${memory.content.substring(0, 20)}...`
               : memory.content}
 
-            <div className="flex text-secondary text-xs items-center gap-1">
-              {memory.imageIds.length}
-              <Images className="text-secondary size-4" />
-            </div>
+            {memory.imageIds.length > 0 && (
+              <div className="flex text-secondary text-xs items-center gap-1">
+                {memory.imageIds.length}
+                <Images className="text-secondary size-4" />
+              </div>
+            )}
           </div>
         </DialogTrigger>
 
@@ -231,6 +233,7 @@ function ImageSlider({
           </button>
 
           <img
+            onClick={(e) => e.stopPropagation()}
             src={imageUrls[imageSliderImageIndex!]}
             alt="memory-preview"
             className="max-w-[80vw] max-h-[80vh] object-contain rounded-lg shadow-lg"
