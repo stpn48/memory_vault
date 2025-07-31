@@ -103,7 +103,7 @@ export function CreateMemory({}: Props) {
           <Plus className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[80%]">
         <DialogHeader>
           <DialogTitle>New Memory</DialogTitle>
           <DialogDescription>
@@ -113,7 +113,7 @@ export function CreateMemory({}: Props) {
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Textarea
-            className="overflow-scroll resize-none !max-h-[500px]"
+            className="overflow-scroll resize-none !max-h-[300px]"
             disabled={isLoading}
             name="content"
             placeholder="Write your memory here"

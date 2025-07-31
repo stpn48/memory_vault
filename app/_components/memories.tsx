@@ -16,6 +16,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Images } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {};
 
@@ -91,17 +92,19 @@ function MemoryCard({
         </div>
       </div>
 
-      <DialogContent className="max-h-[80%] overflow-auto flex flex-col">
+      <DialogContent className="max-h-[80%] min-h-[40%] overflow-auto flex flex-col">
         <DialogHeader>
           <VisuallyHidden>
             <DialogTitle>Memory details</DialogTitle>
           </VisuallyHidden>
           <DialogDescription>{memory.content}</DialogDescription>
+        </DialogHeader>
 
-          <div className="flex justify-center w-full">
+        {memory.imageUrls.length > 0 && (
+          <div className="flex flex-1 items-center justify-center w-full">
             <ImagesStack imageUrls={memory.imageUrls} />
           </div>
-        </DialogHeader>
+        )}
 
         {memory.imageUrls.length === 0 && (
           <div className="flex-1 min-h-[300px] flex justify-center items-center">
@@ -124,73 +127,74 @@ function ImagesStack({ imageUrls }: { imageUrls: (string | null)[] }) {
   >(null);
 
   return (
-    <Dialog>
-      <DialogTrigger>
-        <div className="relative w-[160px] h-[90px] group cursor-pointer">
-          {imageUrls.map((url, i) => {
-            if (!url) return null;
+    <>
+      <Dialog>
+        <DialogTrigger>
+          <div className="relative w-[250px] h-[200px] group cursor-pointer">
+            {imageUrls.map((url, i) => {
+              if (!url) return null;
 
-            return (
-              <img
-                key={i}
-                src={url}
-                alt="memory-preview"
-                className={cn(
-                  "absolute top-0 left-0 w-full h-full object-cover rounded-md border shadow transition-transform duration-300",
-                  i === 0 &&
-                    "z-30 -rotate-1 -translate-x-0.5 group-hover:-rotate-6 group-hover:-translate-x-2",
-                  i === 1 &&
-                    "z-20 translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-2",
-                  i === 2 &&
-                    "z-10 rotate-1 translate-x-1 group-hover:rotate-6 group-hover:translate-x-3",
-                )}
-              />
-            );
-          })}
-
-          {/* glow effect on hover */}
-          <div className="absolute inset-0 rounded-md border border-transparent group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/40 transition-all duration-300" />
-        </div>
-      </DialogTrigger>
-
-      <DialogContent className="max-h-[80vh] w-full lg:w-[80%] !max-w-screen p-10 bg-transparent border-0 overflow-auto">
-        <VisuallyHidden>
-          <DialogHeader>
-            <DialogTitle>Memory Images</DialogTitle>
-            <DialogDescription>
-              All images in this memory, click one to open the image slider and
-              view them in detail
-            </DialogDescription>
-          </DialogHeader>
-        </VisuallyHidden>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {imageUrls.map((url, i) => {
-            if (!url) return null;
-
-            return (
-              <div
-                onClick={() => setImageSliderImageIndex(i)}
-                key={i}
-                className="relative cursor-pointer hover:scale-102 transition-all  w-full h-[250px] overflow-hidden rounded-lg border shadow"
-              >
+              return (
                 <img
+                  key={i}
                   src={url}
-                  alt={`memory-preview-${i}`}
-                  className="w-full h-full object-cover"
+                  alt="memory-preview"
+                  className={cn(
+                    "absolute top-0 left-0 w-full h-full object-cover rounded-md border shadow transition-transform duration-300",
+                    i === 0 &&
+                      "z-30 -rotate-1 -translate-x-0.5 group-hover:-rotate-6 group-hover:-translate-x-2",
+                    i === 1 &&
+                      "z-20 translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-2",
+                    i === 2 &&
+                      "z-10 rotate-1 translate-x-1 group-hover:rotate-6 group-hover:translate-x-3",
+                  )}
                 />
-              </div>
-            );
-          })}
-        </div>
-      </DialogContent>
+              );
+            })}
 
-      <ImageSlider
-        imageSliderImageIndex={imageSliderImageIndex}
-        setImageSliderImageIndex={setImageSliderImageIndex}
-        imageUrls={imageUrls}
-      />
-    </Dialog>
+            {/* glow effect on hover */}
+            <div className="absolute inset-0 rounded-md border border-transparent group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/40 transition-all duration-300" />
+          </div>
+        </DialogTrigger>
+
+        <DialogContent className="max-h-[80vh] w-full lg:w-[80%] !max-w-screen p-10 bg-transparent border-0 overflow-auto">
+          <VisuallyHidden>
+            <DialogHeader>
+              <DialogTitle>Memory Images</DialogTitle>
+              <DialogDescription>
+                All images in this memory, click one to open the image slider
+                and view them in detail
+              </DialogDescription>
+            </DialogHeader>
+          </VisuallyHidden>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {imageUrls.map((url, i) => {
+              if (!url) return null;
+
+              return (
+                <div
+                  onClick={() => setImageSliderImageIndex(i)}
+                  key={i}
+                  className="relative cursor-pointer hover:scale-102 transition-all  w-full h-[250px] overflow-hidden rounded-lg border shadow"
+                >
+                  <img
+                    src={url}
+                    alt={`memory-preview-${i}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <ImageSlider
+            imageSliderImageIndex={imageSliderImageIndex}
+            setImageSliderImageIndex={setImageSliderImageIndex}
+            imageUrls={imageUrls}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -203,54 +207,88 @@ function ImageSlider({
   setImageSliderImageIndex: Dispatch<SetStateAction<number | null>>;
   imageUrls: (string | null)[];
 }) {
-  return (
-    <Dialog
-      open={imageSliderImageIndex !== null}
-      onOpenChange={() => setImageSliderImageIndex(null)}
-    >
-      <DialogContent className="max-h-[90vh] items-center lg:w-[80%] flex justify-center w-full !max-w-screen p-10 bg-transparent border-0 overflow-auto">
-        <VisuallyHidden>
-          <DialogHeader>
-            <DialogTitle>Image slider dialog</DialogTitle>
-            <DialogDescription>
-              Image slider dialog to view all images in this memory in detail
-            </DialogDescription>
-          </DialogHeader>
-        </VisuallyHidden>
+  const isOpen = imageSliderImageIndex !== null;
 
-        <button
-          onClick={() =>
-            setImageSliderImageIndex((prev) => {
-              if (prev === null) return null;
-
-              return prev > 0 ? prev - 1 : 4;
-            })
-          }
-          className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
+  return createPortal(
+    <>
+      {isOpen && (
+        <div
+          onClick={() => setImageSliderImageIndex(null)}
+          className="fixed inset-0 w-screen h-screen  bg-black/50 flex justify-center items-center pointer-events-auto z-50"
         >
-          <ChevronLeft className="text-muted-foreground" />
-        </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setImageSliderImageIndex((prev) => {
+                if (prev === null) return null;
 
-        <div>
+                return prev > 0 ? prev - 1 : 4;
+              });
+            }}
+            className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 absolute left-4 rounded-full "
+          >
+            <ChevronLeft className="text-muted-foreground" />
+          </button>
+
           <img
-            src={`${imageUrls[imageSliderImageIndex!]}`}
+            src={imageUrls[imageSliderImageIndex!]}
             alt="memory-preview"
+            className="max-w-[80vw] max-h-[80vh] object-contain rounded-lg shadow-lg"
           />
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setImageSliderImageIndex((prev) => {
+                if (prev === null) return null;
+
+                return prev < 4 ? prev + 1 : 0;
+              });
+            }}
+            className="bg-secondary/50 flex justify-center absolute right-4 items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
+          >
+            <ChevronRight className="text-muted-foreground" />
+          </button>
         </div>
+      )}
 
-        <button
-          onClick={() =>
-            setImageSliderImageIndex((prev) => {
-              if (prev === null) return null;
+      {/* <Dialog
+        open={imageSliderImageIndex !== null}
+        onOpenChange={() => setImageSliderImageIndex(null)}
+      >
+        <DialogContent className="max-h-[90vh] items-center lg:w-[80%] flex justify-center w-full !max-w-screen p-10 bg-transparent border-0 overflow-auto">
+          <VisuallyHidden>
+            <DialogHeader>
+              <DialogTitle>Image slider dialog</DialogTitle>
+              <DialogDescription>
+                Image slider dialog to view all images in this memory in detail
+              </DialogDescription>
+            </DialogHeader>
+          </VisuallyHidden>
 
-              return prev < 4 ? prev + 1 : 0;
-            })
-          }
-          className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
-        >
-          <ChevronRight className="text-muted-foreground" />
-        </button>
-      </DialogContent>
-    </Dialog>
+
+          <div>
+            <img
+              src={`${imageUrls[imageSliderImageIndex!]}`}
+              alt="memory-preview"
+            />
+          </div>
+
+          <button
+            onClick={() =>
+              setImageSliderImageIndex((prev) => {
+                if (prev === null) return null;
+
+                return prev < 4 ? prev + 1 : 0;
+              })
+            }
+            className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
+          >
+            <ChevronRight className="text-muted-foreground" />
+          </button>
+        </DialogContent>
+      </Dialog> */}
+    </>,
+    document.body,
   );
 }
