@@ -22,6 +22,7 @@ type Props = {};
 
 export function Memories({}: Props) {
   const userMemories = useQuery(api.memories.getUserMemories);
+  console.log(userMemories);
 
   if (userMemories === undefined) {
     return (
@@ -49,9 +50,19 @@ export function Memories({}: Props) {
   }
 
   return (
-    <div className={"flex justify-center gap-8 flex-wrap"}>
-      {userMemories.map((memory) => (
-        <MemoryCard memory={memory} key={memory._id} />
+    <div className={"flex flex-col gap-8"}>
+      {userMemories.map((day) => (
+        <div className="flex flex-col gap-4" key={day.creationDate}>
+          <p>{day.creationDate}</p>
+
+          <hr />
+
+          <div className="flex items-center gap-4 flex-wrap">
+            {day.memories.map((memory) => (
+              <MemoryCard memory={memory} key={memory._id} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

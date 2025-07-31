@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Doc } from "./_generated/dataModel";
+import { formatDate } from "@/lib/utils";
 
 export const createMemory = mutation({
   args: { content: v.string(), imageIds: v.array(v.id("_storage")) },
@@ -25,6 +27,8 @@ export const createMemory = mutation({
   },
 });
 
+type MemoryWithUrls = Doc<"memories"> & { imageUrls: (string | null)[] };
+
 export const getUserMemories = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
@@ -46,7 +50,32 @@ export const getUserMemories = query({
       }),
     );
 
-    return memoriesWithUrls;
+    if (memoriesWithUrls.length === 0) return [];
+
+    let currDate = formatDate(memoriesWithUrls[0]._creationTime);
+
+    const memoriesCalendarOrder: {
+      creationDate: string; // grouped by date string
+      memories: MemoryWithUrls[];
+    }[] = [{ creationDate: currDate, memories: [] }];
+
+    for (const memory of memoriesWithUrls) {
+      const memoryDate = formatDate(memory._creationTime);
+
+      if (currDate === memoryDate) {
+        memoriesCalendarOrder[memoriesCalendarOrder.length - 1].memories.push(
+          memory,
+        );
+      } else {
+        currDate = memoryDate;
+        memoriesCalendarOrder.push({
+          creationDate: currDate,
+          memories: [memory],
+        });
+      }
+    }
+
+    return memoriesCalendarOrder;
   },
 });
 

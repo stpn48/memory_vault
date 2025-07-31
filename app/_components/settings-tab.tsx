@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,22 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useTheme } from "next-themes";
 import { PropsWithChildren } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
 
 type Props = {
   currentTab: number;
@@ -64,6 +52,8 @@ function Tab1() {
           </SelectContent>
         </Select>
       </SettingsRow>
+
+      <SettingsRow>Memory layout (calendar, grid, more... soon)</SettingsRow>
     </SettingsTabContent>
   );
 }
