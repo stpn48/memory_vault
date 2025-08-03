@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { AvatarMenu } from "./_components/avatar-menu";
 import { CreateMemory } from "./_components/create-memory";
 import { Memories } from "./_components/memories";
@@ -11,7 +10,7 @@ export default function Home() {
       <section className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Your Memories</h1>
 
-        <Input className="w-[300px]" placeholder="search a memory" />
+        <div className="w-[500px]"></div>
 
         <AvatarMenu />
       </section>

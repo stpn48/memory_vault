@@ -8,106 +8,86 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { MemoryWithUrls } from "@/types/types";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Images } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import { createPortal } from "react-dom";
 
-type Props = {};
+// Component: Memories
+export function Memories() {
+  const {
+    results: days,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.memories.getUserMemories, {}, { initialNumItems: 10 });
 
-export function Memories({}: Props) {
-  const userMemories = useQuery(api.memories.getUserMemories);
-  console.log(userMemories);
+  const [query, setQuery] = useState("");
 
-  if (userMemories === undefined) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div className="flex flex-col w-full gap-[2px]" key={i}>
-            <Skeleton className="h-[40px] w-full" />
-            <div className="flex flex-row-reverse">
-              <Skeleton className="h-[16px] !rounded-sm w-[150px]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  // Handle loading state
+  if (status === "LoadingFirstPage") {
+    return <LoadingSkeleton />;
   }
 
-  if (userMemories.length === 0) {
-    return (
-      <div className="mb-20 w-full flex-1 flex flex-col items-center justify-center">
-        <p className="text-xs text-secondary-foreground/50">
-          No memories yet...
-        </p>
-      </div>
-    );
+  // Handle empty state
+  if (days.length === 0) {
+    return <EmptyState />;
   }
+
+  // Filter memories based on the query
+  const filteredDays = filterByQuery(days, query);
 
   return (
-    <div className={"flex flex-col gap-8"}>
-      {userMemories.map((day) => (
-        <div className="flex flex-col gap-4" key={day.creationDate}>
-          <p>{day.creationDate}</p>
+    <div className="flex flex-col gap-8">
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="absolute top-4 right-1/2 left-1/2 w-[300px] -translate-x-1/2"
+        placeholder="Search a memory"
+      />
 
-          <hr />
-
-          <div className="flex items-center gap-4 flex-wrap">
-            {day.memories.map((memory) => (
-              <MemoryCard memory={memory} key={memory._id} />
-            ))}
-          </div>
-        </div>
+      {filteredDays.map((day) => (
+        <DaySection key={day.creationDate} day={day} />
       ))}
+
+      {status === "CanLoadMore" && <LoadMoreButton loadMore={loadMore} />}
     </div>
   );
 }
 
-function MemoryCard({
-  memory,
-}: {
-  memory: Doc<"memories"> & { imageUrls: (string | null)[] };
-}) {
+// Component: Day Section
+function DaySection({ day }: { day: { creationDate: string; memories: MemoryWithUrls[] } }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p>{day.creationDate}</p>
+      <hr />
+      <div className="flex flex-wrap items-center gap-4">
+        {day.memories.map((memory) => (
+          <MemoryCard key={memory._id} memory={memory} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Component: Memory Card
+function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
   return (
     <Dialog>
       <div className="flex w-[300px] flex-col gap-[2px]">
         <DialogTrigger>
-          <div className="border-2 flex justify-between text-sm items-center rounded-lg cursor-pointer hover:ring-2 ring-secondary p-3 w-full">
-            {memory.content.length > 20
-              ? `${memory.content.substring(0, 20)}...`
-              : memory.content}
-
-            {memory.imageIds.length > 0 && (
-              <div className="flex text-xs items-center gap-1">
-                <p className="text-muted-foreground">
-                  {memory.imageIds.length}
-                </p>
-                <Images className="text-muted-foreground size-4" />
-              </div>
-            )}
-          </div>
+          <MemoryPreview memory={memory} />
         </DialogTrigger>
-
-        <div className="flex flex-row-reverse">
-          <p className="text-xs text-secondary-foreground/50">
-            from:{" "}
-            {new Date(memory._creationTime).toLocaleString(undefined, {
-              year: "numeric",
-              month: "numeric",
-              day: "numeric",
-              hour: "numeric",
-              minute: "numeric",
-            })}
-          </p>
-        </div>
+        <MemoryDate memory={memory} />
       </div>
 
-      <DialogContent className="max-h-[80%] min-h-[40%] overflow-auto gap-10 flex flex-col">
+      <DialogContent className="flex max-h-[80%] min-h-[40%] flex-col gap-10 overflow-auto">
         <DialogHeader>
           <VisuallyHidden>
             <DialogTitle>Memory details</DialogTitle>
@@ -116,102 +96,82 @@ function MemoryCard({
             {memory.content}
           </DialogDescription>
         </DialogHeader>
-        {memory.imageUrls.length > 0 && (
-          <div className="flex flex-1 items-center justify-center w-full">
-            <ImagesStack imageUrls={memory.imageUrls} />
-          </div>
-        )}
-        {memory.imageUrls.length === 0 && (
-          <div className="flex-1 min-h-[300px] flex justify-center items-center">
-            <div className="flex flex-col items-center gap-2">
-              <Images className="size-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                No Images for this memory...
-              </span>
-            </div>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          from:{" "}
-          {new Date(memory._creationTime).toLocaleString(undefined, {
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-          })}
-        </p>
+        <MemoryImages memory={memory} />
+        <MemoryDate memory={memory} />
       </DialogContent>
     </Dialog>
   );
 }
 
+// Component: Memory Preview
+function MemoryPreview({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
+  return (
+    <div className="ring-secondary flex w-full cursor-pointer items-center justify-between rounded-lg border-2 p-3 text-sm hover:ring-2">
+      {memory.content.length > 20 ? `${memory.content.substring(0, 20)}...` : memory.content}
+
+      {memory.imageIds.length > 0 && (
+        <div className="flex items-center gap-1 text-xs">
+          <p className="text-muted-foreground">{memory.imageIds.length}</p>
+          <Images className="text-muted-foreground size-4" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component: Memory Date
+function MemoryDate({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
+  return (
+    <div className="flex flex-row-reverse">
+      <p className="text-secondary-foreground/50 text-xs">
+        from:{" "}
+        {new Date(memory._creationTime).toLocaleString(undefined, {
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+        })}
+      </p>
+    </div>
+  );
+}
+
+// Component: Memory Images
+function MemoryImages({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
+  return memory.imageUrls.length > 0 ? (
+    <div className="flex w-full flex-1 items-center justify-center">
+      <ImagesStack imageUrls={memory.imageUrls} />
+    </div>
+  ) : (
+    <NoImages />
+  );
+}
+
+// Component: No Images
+function NoImages() {
+  return (
+    <div className="flex min-h-[300px] flex-1 items-center justify-center">
+      <div className="flex flex-col items-center gap-2">
+        <Images className="text-muted-foreground size-4" />
+        <span className="text-muted-foreground text-xs">No Images for this memory...</span>
+      </div>
+    </div>
+  );
+}
+
+// Component: Images Stack
 function ImagesStack({ imageUrls }: { imageUrls: (string | null)[] }) {
-  const [imageSliderImageIndex, setImageSliderImageIndex] = useState<
-    number | null
-  >(null);
+  const [imageSliderImageIndex, setImageSliderImageIndex] = useState<number | null>(null);
 
   return (
     <>
       <Dialog>
         <DialogTrigger>
-          <div className="relative w-[250px] h-[200px] group cursor-pointer">
-            {imageUrls.map((url, i) => {
-              if (!url) return null;
-
-              return (
-                <img
-                  key={i}
-                  src={url}
-                  alt="memory-preview"
-                  className={cn(
-                    "absolute top-0 left-0 w-full h-full object-cover rounded-md border shadow transition-transform duration-300",
-                    i === 0 &&
-                      "z-30 -rotate-1 -translate-x-0.5 group-hover:-rotate-6 group-hover:-translate-x-2",
-                    i === 1 &&
-                      "z-20 translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-2",
-                    i === 2 &&
-                      "z-10 rotate-1 translate-x-1 group-hover:rotate-6 group-hover:translate-x-3",
-                  )}
-                />
-              );
-            })}
-
-            {/* glow effect on hover */}
-            <div className="absolute inset-0 rounded-md border border-transparent group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/40 transition-all duration-300" />
-          </div>
+          <ImagePreviewGroup imageUrls={imageUrls} />
         </DialogTrigger>
-
-        <DialogContent className="max-h-[80vh] w-full lg:w-[80%] !max-w-screen p-10 bg-transparent border-0 overflow-auto">
-          <VisuallyHidden>
-            <DialogHeader>
-              <DialogTitle>Memory Images</DialogTitle>
-              <DialogDescription>
-                All images in this memory, click one to open the image slider
-                and view them in detail
-              </DialogDescription>
-            </DialogHeader>
-          </VisuallyHidden>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {imageUrls.map((url, i) => {
-              if (!url) return null;
-
-              return (
-                <div
-                  onClick={() => setImageSliderImageIndex(i)}
-                  key={i}
-                  className="relative cursor-pointer hover:scale-102 transition-all  w-full h-[250px] overflow-hidden rounded-lg border shadow"
-                >
-                  <img
-                    src={url}
-                    alt={`memory-preview-${i}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              );
-            })}
-          </div>
+        <DialogContent className="max-h-[80vh] w-full !max-w-screen overflow-auto border-0 bg-transparent p-10 lg:w-[80%]">
+          <ImageGrid imageUrls={imageUrls} setImageSliderImageIndex={setImageSliderImageIndex} />
           <ImageSlider
             imageSliderImageIndex={imageSliderImageIndex}
             setImageSliderImageIndex={setImageSliderImageIndex}
@@ -223,6 +183,63 @@ function ImagesStack({ imageUrls }: { imageUrls: (string | null)[] }) {
   );
 }
 
+// Component: Image Preview Group
+function ImagePreviewGroup({ imageUrls }: { imageUrls: (string | null)[] }) {
+  return (
+    <div className="group relative h-[200px] w-[250px] cursor-pointer">
+      {imageUrls.map((url, i) => {
+        if (!url) return null;
+
+        return (
+          <img
+            key={i}
+            src={url}
+            alt="memory-preview"
+            className={cn(
+              "absolute top-0 left-0 h-full w-full rounded-md border object-cover shadow transition-transform duration-300",
+              i === 0 &&
+                "z-30 -translate-x-0.5 -rotate-1 group-hover:-translate-x-2 group-hover:-rotate-6",
+              i === 1 &&
+                "z-20 translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-2",
+              i === 2 &&
+                "z-10 translate-x-1 rotate-1 group-hover:translate-x-3 group-hover:rotate-6",
+            )}
+          />
+        );
+      })}
+      <div className="group-hover:border-primary group-hover:shadow-primary/40 absolute inset-0 rounded-md border border-transparent transition-all duration-300 group-hover:shadow-lg" />
+    </div>
+  );
+}
+
+// Component: Image Grid
+function ImageGrid({
+  imageUrls,
+  setImageSliderImageIndex,
+}: {
+  imageUrls: (string | null)[];
+  setImageSliderImageIndex: Dispatch<SetStateAction<number | null>>;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      {imageUrls.map((url, i) => {
+        if (!url) return null;
+
+        return (
+          <div
+            onClick={() => setImageSliderImageIndex(i)}
+            key={i}
+            className="relative h-[250px] w-full cursor-pointer overflow-hidden rounded-lg border shadow transition-all hover:scale-102"
+          >
+            <img src={url} alt={`memory-preview-${i}`} className="h-full w-full object-cover" />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Component: Image Slider
 function ImageSlider({
   imageSliderImageIndex,
   setImageSliderImageIndex,
@@ -235,86 +252,110 @@ function ImageSlider({
   const isOpen = imageSliderImageIndex !== null;
 
   return createPortal(
-    <>
-      {isOpen && (
-        <div
-          onClick={() => setImageSliderImageIndex(null)}
-          className="fixed inset-0 w-screen h-screen  bg-black/50 flex justify-center items-center pointer-events-auto z-50"
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setImageSliderImageIndex((prev) => {
-                if (prev === null) return null;
-
-                return prev > 0 ? prev - 1 : 4;
-              });
-            }}
-            className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 absolute left-4 rounded-full "
-          >
-            <ChevronLeft className="text-muted-foreground" />
-          </button>
-
-          <img
-            onClick={(e) => e.stopPropagation()}
-            src={imageUrls[imageSliderImageIndex!]}
-            alt="memory-preview"
-            className="max-w-[80vw] max-h-[80vh] object-contain rounded-lg shadow-lg"
-          />
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setImageSliderImageIndex((prev) => {
-                if (prev === null) return null;
-
-                return prev < 4 ? prev + 1 : 0;
-              });
-            }}
-            className="bg-secondary/50 flex justify-center absolute right-4 items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
-          >
-            <ChevronRight className="text-muted-foreground" />
-          </button>
-        </div>
-      )}
-
-      {/* <Dialog
-        open={imageSliderImageIndex !== null}
-        onOpenChange={() => setImageSliderImageIndex(null)}
+    isOpen && (
+      <div
+        onClick={() => setImageSliderImageIndex(null)}
+        className="pointer-events-auto fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black/50"
       >
-        <DialogContent className="max-h-[90vh] items-center lg:w-[80%] flex justify-center w-full !max-w-screen p-10 bg-transparent border-0 overflow-auto">
-          <VisuallyHidden>
-            <DialogHeader>
-              <DialogTitle>Image slider dialog</DialogTitle>
-              <DialogDescription>
-                Image slider dialog to view all images in this memory in detail
-              </DialogDescription>
-            </DialogHeader>
-          </VisuallyHidden>
-
-
-          <div>
-            <img
-              src={`${imageUrls[imageSliderImageIndex!]}`}
-              alt="memory-preview"
-            />
-          </div>
-
-          <button
-            onClick={() =>
-              setImageSliderImageIndex((prev) => {
-                if (prev === null) return null;
-
-                return prev < 4 ? prev + 1 : 0;
-              })
-            }
-            className="bg-secondary/50 flex justify-center items-center cursor-pointer hover:bg-secondary/60 p-2 rounded-full "
-          >
-            <ChevronRight className="text-muted-foreground" />
-          </button>
-        </DialogContent>
-      </Dialog> */}
-    </>,
+        <SliderButton
+          direction="left"
+          onClick={() =>
+            setImageSliderImageIndex((prev) => (prev !== null ? Math.max(prev - 1, 0) : null))
+          }
+        />
+        <img
+          onClick={(e) => e.stopPropagation()}
+          src={imageUrls[imageSliderImageIndex!]}
+          alt="memory-preview"
+          className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain shadow-lg"
+        />
+        <SliderButton
+          direction="right"
+          onClick={() =>
+            setImageSliderImageIndex((prev) =>
+              prev !== null ? Math.min(prev + 1, imageUrls.length - 1) : null,
+            )
+          }
+        />
+      </div>
+    ),
     document.body,
   );
+}
+
+// Component: Slider Button
+function SliderButton({
+  direction,
+  onClick,
+}: {
+  direction: "left" | "right";
+  onClick: () => void;
+}) {
+  const Icon = direction === "left" ? ChevronLeft : ChevronRight;
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`bg-secondary/50 hover:bg-secondary/60 absolute ${
+        direction === "left" ? "left-4" : "right-4"
+      } flex cursor-pointer items-center justify-center rounded-full p-2`}
+    >
+      <Icon className="text-muted-foreground" />
+    </button>
+  );
+}
+
+// Component: Loading Skeleton
+function LoadingSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div className="flex w-full flex-col gap-[2px]" key={i}>
+          <Skeleton className="h-[40px] w-full" />
+          <div className="flex flex-row-reverse">
+            <Skeleton className="h-[16px] w-[150px] !rounded-sm" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Component: Empty State
+function EmptyState() {
+  return (
+    <div className="mb-20 flex w-full flex-1 flex-col items-center justify-center">
+      <p className="text-secondary-foreground/50 text-xs">No memories yet...</p>
+    </div>
+  );
+}
+
+// Component: Load More Button
+function LoadMoreButton({ loadMore }: { loadMore: (numItems: number) => void }) {
+  return (
+    <button onClick={() => loadMore(10)} className="bg-primary mt-4 rounded p-2 text-white">
+      Load more
+    </button>
+  );
+}
+
+// Utility: Filter Memories by Query
+function filterByQuery(
+  days: { creationDate: string; memories: MemoryWithUrls[] }[],
+  query: string,
+): { creationDate: string; memories: MemoryWithUrls[] }[] {
+  query = query.trim().toLowerCase();
+
+  return days
+    .map((day) => {
+      const filteredMemories = day.memories.filter((memory) =>
+        memory.content.trim().toLowerCase().includes(query),
+      );
+
+      return filteredMemories.length > 0 ? { ...day, memories: filteredMemories } : null;
+    })
+    .filter((day) => day !== null) as { creationDate: string; memories: MemoryWithUrls[] }[];
 }

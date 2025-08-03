@@ -1,8 +1,9 @@
+import { formatDate } from "@/lib/utils";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc } from "./_generated/dataModel";
-import { formatDate } from "@/lib/utils";
+import { MemoryWithUrls } from "@/types/types";
 
 export const createMemory = mutation({
   args: { content: v.string(), imageIds: v.array(v.id("_storage")) },
@@ -27,22 +28,21 @@ export const createMemory = mutation({
   },
 });
 
-type MemoryWithUrls = Doc<"memories"> & { imageUrls: (string | null)[] };
-
 export const getUserMemories = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { paginationOpts }) => {
     const userId = await getAuthUserId(ctx);
 
-    const memories = await ctx.db
+    const page = await ctx.db
       .query("memories")
       .filter((q) => q.eq(q.field("userId"), userId))
-      .collect();
+      .order("desc")
+      .paginate(paginationOpts);
 
-    memories.sort((a, b) => b._creationTime - a._creationTime);
-
-    // Add signed URLs for each memory's images
     const memoriesWithUrls = await Promise.all(
-      memories.map(async (memory) => {
+      page.page.map(async (memory) => {
         const imageUrls = await Promise.all(
           (memory.imageIds ?? []).map((id) => ctx.storage.getUrl(id)),
         );
@@ -50,32 +50,34 @@ export const getUserMemories = query({
       }),
     );
 
-    if (memoriesWithUrls.length === 0) return [];
+    // group by date
+    let currDate = memoriesWithUrls.length
+      ? formatDate(memoriesWithUrls[0]._creationTime)
+      : null;
 
-    let currDate = formatDate(memoriesWithUrls[0]._creationTime);
-
-    const memoriesCalendarOrder: {
-      creationDate: string; // grouped by date string
+    const grouped: {
+      creationDate: string;
       memories: MemoryWithUrls[];
-    }[] = [{ creationDate: currDate, memories: [] }];
+    }[] = currDate ? [{ creationDate: currDate, memories: [] }] : [];
 
     for (const memory of memoriesWithUrls) {
       const memoryDate = formatDate(memory._creationTime);
 
       if (currDate === memoryDate) {
-        memoriesCalendarOrder[memoriesCalendarOrder.length - 1].memories.push(
-          memory,
-        );
+        grouped[grouped.length - 1].memories.push(memory);
       } else {
         currDate = memoryDate;
-        memoriesCalendarOrder.push({
+        grouped.push({
           creationDate: currDate,
           memories: [memory],
         });
       }
     }
 
-    return memoriesCalendarOrder;
+    return {
+      ...page,
+      page: grouped,
+    };
   },
 });
 
