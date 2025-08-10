@@ -51,9 +51,7 @@ export const getUserMemories = query({
     );
 
     // group by date
-    let currDate = memoriesWithUrls.length
-      ? formatDate(memoriesWithUrls[0]._creationTime)
-      : null;
+    let currDate = memoriesWithUrls.length ? formatDate(memoriesWithUrls[0]._creationTime) : null;
 
     const grouped: {
       creationDate: string;

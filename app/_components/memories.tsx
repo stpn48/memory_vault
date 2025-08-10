@@ -49,7 +49,7 @@ export function Memories() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="absolute top-4 right-1/2 left-1/2 w-[300px] -translate-x-1/2"
-        placeholder="Search a memory"
+        placeholder="Search a memory or date"
       />
 
       {filteredDays.map((day) => (
@@ -87,17 +87,20 @@ function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
         <MemoryDate memory={memory} />
       </div>
 
-      <DialogContent className="flex max-h-[80%] min-h-[40%] flex-col gap-10 overflow-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[80%] min-h-[40%] w-full !max-w-screen flex-col gap-10 overflow-auto md:flex-row lg:w-[90%]">
+        <DialogHeader className="flex-1 overflow-scroll">
           <VisuallyHidden>
             <DialogTitle>Memory details</DialogTitle>
           </VisuallyHidden>
-          <DialogDescription className="text-foreground text-sm">
+
+          <DialogDescription className="text-foreground text-justify text-sm">
             {memory.content}
           </DialogDescription>
+
+          <MemoryDate memory={memory} />
         </DialogHeader>
+
         <MemoryImages memory={memory} />
-        <MemoryDate memory={memory} />
       </DialogContent>
     </Dialog>
   );
@@ -139,13 +142,7 @@ function MemoryDate({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
 
 // Component: Memory Images
 function MemoryImages({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
-  return memory.imageUrls.length > 0 ? (
-    <div className="flex w-full flex-1 items-center justify-center">
-      <ImagesStack imageUrls={memory.imageUrls} />
-    </div>
-  ) : (
-    <NoImages />
-  );
+  return memory.imageUrls.length > 0 ? <ImageGrid imageUrls={memory.imageUrls} /> : <NoImages />;
 }
 
 // Component: No Images
@@ -161,24 +158,58 @@ function NoImages() {
 }
 
 // Component: Images Stack
-function ImagesStack({ imageUrls }: { imageUrls: (string | null)[] }) {
+function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
   const [imageSliderImageIndex, setImageSliderImageIndex] = useState<number | null>(null);
 
   return (
     <>
-      <Dialog>
-        <DialogTrigger>
-          <ImagePreviewGroup imageUrls={imageUrls} />
-        </DialogTrigger>
-        <DialogContent className="max-h-[80vh] w-full !max-w-screen overflow-auto border-0 bg-transparent p-10 lg:w-[80%]">
-          <ImageGrid imageUrls={imageUrls} setImageSliderImageIndex={setImageSliderImageIndex} />
-          <ImageSlider
-            imageSliderImageIndex={imageSliderImageIndex}
-            setImageSliderImageIndex={setImageSliderImageIndex}
-            imageUrls={imageUrls}
-          />
-        </DialogContent>
-      </Dialog>
+      <div className="flex flex-1 flex-col justify-center gap-2">
+        <img
+          onClick={() => setImageSliderImageIndex(0)}
+          src={imageUrls[0] || ""}
+          alt="memory-preview"
+          className="border-border h-[400px] cursor-pointer rounded-md border object-cover shadow-md transition-all hover:scale-101 hover:contrast-105"
+        />
+
+        <div className="grid grid-cols-3 gap-2">
+          {imageUrls.slice(1, 3).map((url, i) => {
+            if (!url) return null;
+
+            return (
+              <img
+                onClick={() => setImageSliderImageIndex(i + 1)}
+                key={i}
+                src={url}
+                alt={`memory-preview-${i}`}
+                className="border-border h-[150px] cursor-pointer rounded-md border object-cover shadow-md transition-all hover:scale-102"
+              />
+            );
+          })}
+
+          {imageUrls.length > 3 && (
+            <div
+              onClick={() => setImageSliderImageIndex(3)}
+              className="relative flex h-[150px] w-full cursor-pointer items-center justify-center transition-all hover:scale-102"
+            >
+              {imageUrls.slice(3).map((url, i) => (
+                <img
+                  className="border-border absolute h-[120px] w-[90%] rounded-md border object-cover"
+                  key={i}
+                  style={{ rotate: `${i * 7}deg` }}
+                  src={url || ""}
+                  alt="image"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ImageSlider
+        imageSliderImageIndex={imageSliderImageIndex}
+        setImageSliderImageIndex={setImageSliderImageIndex}
+        imageUrls={imageUrls}
+      />
     </>
   );
 }
@@ -212,33 +243,6 @@ function ImagePreviewGroup({ imageUrls }: { imageUrls: (string | null)[] }) {
   );
 }
 
-// Component: Image Grid
-function ImageGrid({
-  imageUrls,
-  setImageSliderImageIndex,
-}: {
-  imageUrls: (string | null)[];
-  setImageSliderImageIndex: Dispatch<SetStateAction<number | null>>;
-}) {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-      {imageUrls.map((url, i) => {
-        if (!url) return null;
-
-        return (
-          <div
-            onClick={() => setImageSliderImageIndex(i)}
-            key={i}
-            className="relative h-[250px] w-full cursor-pointer overflow-hidden rounded-lg border shadow transition-all hover:scale-102"
-          >
-            <img src={url} alt={`memory-preview-${i}`} className="h-full w-full object-cover" />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // Component: Image Slider
 function ImageSlider({
   imageSliderImageIndex,
@@ -250,33 +254,60 @@ function ImageSlider({
   imageUrls: (string | null)[];
 }) {
   const isOpen = imageSliderImageIndex !== null;
+  const len = imageUrls.length;
 
   return createPortal(
     isOpen && (
       <div
         onClick={() => setImageSliderImageIndex(null)}
-        className="pointer-events-auto fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black/50"
+        className="pointer-events-auto fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-black/50"
       >
-        <SliderButton
-          direction="left"
-          onClick={() =>
-            setImageSliderImageIndex((prev) => (prev !== null ? Math.max(prev - 1, 0) : null))
-          }
-        />
-        <img
-          onClick={(e) => e.stopPropagation()}
-          src={imageUrls[imageSliderImageIndex!]}
-          alt="memory-preview"
-          className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain shadow-lg"
-        />
-        <SliderButton
-          direction="right"
-          onClick={() =>
-            setImageSliderImageIndex((prev) =>
-              prev !== null ? Math.min(prev + 1, imageUrls.length - 1) : null,
-            )
-          }
-        />
+        <div className="flex flex-1 items-center">
+          <SliderButton
+            direction="left"
+            onClick={() =>
+              setImageSliderImageIndex((prev) =>
+                prev === null ? null : prev === 0 ? len - 1 : prev - 1,
+              )
+            }
+          />
+
+          <img
+            onClick={(e) => e.stopPropagation()}
+            src={imageUrls[imageSliderImageIndex!] || ""}
+            alt="memory-preview"
+            className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain shadow-lg"
+          />
+
+          <SliderButton
+            direction="right"
+            onClick={() =>
+              setImageSliderImageIndex((prev) =>
+                prev === null ? null : prev === len - 1 ? 0 : prev + 1,
+              )
+            }
+          />
+        </div>
+
+        <div className="grid w-1/2 grid-cols-5 gap-4 p-4">
+          {imageUrls.map((url, i) => (
+            <img
+              onClick={(e) => {
+                e.stopPropagation();
+                setImageSliderImageIndex(i);
+              }}
+              className={cn(
+                "border-border h-[120px] w-full cursor-pointer rounded-md border object-cover transition-all hover:scale-102",
+                {
+                  "ring-accent ring-ring ring ring-2": i === imageSliderImageIndex,
+                },
+              )}
+              alt="memory-preview"
+              key={i}
+              src={url || ""}
+            />
+          ))}
+        </div>
       </div>
     ),
     document.body,
@@ -347,15 +378,41 @@ function filterByQuery(
   days: { creationDate: string; memories: MemoryWithUrls[] }[],
   query: string,
 ): { creationDate: string; memories: MemoryWithUrls[] }[] {
+  // Normalize the query string
   query = query.trim().toLowerCase();
 
   return days
     .map((day) => {
+      // Check if the day matches the query
+      const isDateMatch = new Date(day.creationDate)
+        .toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+        })
+        .toString()
+        .includes(query);
+
+      if (isDateMatch) {
+        return day;
+      }
+
+      // Filter memories that match the query
       const filteredMemories = day.memories.filter((memory) =>
         memory.content.trim().toLowerCase().includes(query),
       );
 
-      return filteredMemories.length > 0 ? { ...day, memories: filteredMemories } : null;
+      // Include the day if either the date matches or there are matching memories
+      if (filteredMemories.length > 0) {
+        return {
+          ...day,
+          memories: filteredMemories,
+        };
+      }
+
+      return null; // Exclude days with no matches
     })
     .filter((day) => day !== null) as { creationDate: string; memories: MemoryWithUrls[] }[];
 }
