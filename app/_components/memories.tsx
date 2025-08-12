@@ -26,7 +26,7 @@ export function Memories() {
     results: days,
     status,
     loadMore,
-  } = usePaginatedQuery(api.memories.getUserMemories, {}, { initialNumItems: 10 });
+  } = usePaginatedQuery(api.memories.getUserMemories, {}, { initialNumItems: 3 });
 
   const [query, setQuery] = useState("");
 
@@ -84,11 +84,10 @@ function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
         <DialogTrigger>
           <MemoryPreview memory={memory} />
         </DialogTrigger>
-        <MemoryDate memory={memory} />
       </div>
 
       <DialogContent className="flex max-h-[80%] min-h-[40%] w-full !max-w-screen flex-col gap-10 overflow-auto md:flex-row lg:w-[90%]">
-        <DialogHeader className="flex-1 overflow-scroll">
+        <DialogHeader className="flex flex-1 flex-col justify-between overflow-scroll">
           <VisuallyHidden>
             <DialogTitle>Memory details</DialogTitle>
           </VisuallyHidden>
@@ -157,7 +156,6 @@ function NoImages() {
   );
 }
 
-// Component: Images Stack
 function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
   const [imageSliderImageIndex, setImageSliderImageIndex] = useState<number | null>(null);
 
@@ -211,35 +209,6 @@ function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
         imageUrls={imageUrls}
       />
     </>
-  );
-}
-
-// Component: Image Preview Group
-function ImagePreviewGroup({ imageUrls }: { imageUrls: (string | null)[] }) {
-  return (
-    <div className="group relative h-[200px] w-[250px] cursor-pointer">
-      {imageUrls.map((url, i) => {
-        if (!url) return null;
-
-        return (
-          <img
-            key={i}
-            src={url}
-            alt="memory-preview"
-            className={cn(
-              "absolute top-0 left-0 h-full w-full rounded-md border object-cover shadow transition-transform duration-300",
-              i === 0 &&
-                "z-30 -translate-x-0.5 -rotate-1 group-hover:-translate-x-2 group-hover:-rotate-6",
-              i === 1 &&
-                "z-20 translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-2",
-              i === 2 &&
-                "z-10 translate-x-1 rotate-1 group-hover:translate-x-3 group-hover:rotate-6",
-            )}
-          />
-        );
-      })}
-      <div className="group-hover:border-primary group-hover:shadow-primary/40 absolute inset-0 rounded-md border border-transparent transition-all duration-300 group-hover:shadow-lg" />
-    </div>
   );
 }
 
@@ -368,7 +337,7 @@ function EmptyState() {
 function LoadMoreButton({ loadMore }: { loadMore: (numItems: number) => void }) {
   return (
     <button onClick={() => loadMore(10)} className="bg-primary mt-4 rounded p-2 text-white">
-      Load more
+      Load more days
     </button>
   );
 }
@@ -386,7 +355,6 @@ function filterByQuery(
       // Check if the day matches the query
       const isDateMatch = new Date(day.creationDate)
         .toLocaleDateString(undefined, {
-          year: "numeric",
           month: "numeric",
           day: "numeric",
           hour: "numeric",

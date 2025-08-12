@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +29,7 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html lang="en" suppressHydrationWarning>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} font-geist-sans antialiased text-sm font-medium`}
+          className={`${geistSans.variable} ${geistMono.variable} font-geist-sans text-sm font-medium antialiased`}
         >
           <ThemeProvider
             attribute="class"
@@ -37,6 +38,8 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ConvexClientProvider>{children}</ConvexClientProvider>
+
+            <Toaster richColors />
           </ThemeProvider>
         </body>
       </html>
