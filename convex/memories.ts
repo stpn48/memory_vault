@@ -58,10 +58,6 @@ export const getUserMemories = query({
   },
 });
 
-export const createUploadUrl = mutation(async ({ storage }) => {
-  return await storage.generateUploadUrl();
-});
-
 function groupMemoriesByDate(memories: Doc<"memories">[]) {
   if (memories.length === 0) return [];
 
