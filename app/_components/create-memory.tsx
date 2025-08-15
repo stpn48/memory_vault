@@ -10,11 +10,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { catchErrorAsync } from "@/lib/catch-error";
 import { useMutation } from "convex/react";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dropzone } from "../../components/dropzone";
@@ -52,37 +53,6 @@ export function CreateMemory({}: Props) {
 
     setOpen(false);
 
-    const imageIds: Id<"_storage">[] = [];
-
-    toast.promise(
-      async () => {
-        for (const file of files) {
-          // Ask Convex for an upload URL
-          const uploadUrl = await createUploadUrl();
-
-          // POST file to the upload URL
-          const { error: uploadImageError } = await catchErrorAsync(async () => {
-            const res = await fetch(uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-            });
-
-            const { storageId } = await res.json();
-            imageIds.push(storageId as Id<"_storage">);
-          });
-
-          if (uploadImageError) {
-            toast.error(uploadImageError);
-            return;
-          }
-        }
-
-        await createMemory({ content, imageIds });
-      },
-      { loading: "Creating memory...", success: "Memory created!", error: "Error creating memory" },
-    );
-
     setFiles([]);
   };
 
@@ -98,44 +68,73 @@ export function CreateMemory({}: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild className="absolute right-4 bottom-4 cursor-pointer">
-        <Button className="h-10 w-10 rounded-full p-4 transition-all hover:scale-105">
-          <Plus className="size-4" />
+      <DialogTrigger asChild>
+        <Button className="fixed right-6 bottom-6 h-14 w-14 rounded-full p-0 shadow-lg transition-all hover:scale-110 hover:shadow-xl">
+          <Plus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80%]">
-        <DialogHeader>
-          <DialogTitle>New Memory</DialogTitle>
-          <DialogDescription>
-            Create a new memory. Drop an image or write some text.
-          </DialogDescription>
+      <DialogContent className="max-h-[90vh] max-w-2xl">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 rounded-full p-2">
+              <Sparkles className="text-primary h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-semibold">Create New Memory</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-sm">
+                Capture this moment with text and images
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <Textarea
-            className="!max-h-[300px] resize-none overflow-scroll"
-            name="content"
-            placeholder="Write your memory here"
-          ></Textarea>
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="content" className="text-foreground text-sm font-medium">
+              What&apos;s on your mind?
+            </label>
 
-          <Dropzone
-            onDrop={(accepted) => {
-              if (accepted.length + files.length > 5) {
-                setError("You can upload up to 5 images only.");
-                return;
-              }
-              setFiles((prev) => [...prev, ...accepted]);
-            }}
-            accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
-          />
+            <Textarea
+              id="content"
+              className="border-muted/50 focus:border-primary/50 min-h-[120px] resize-none"
+              name="content"
+              placeholder="Write about your memory, thought, or experience..."
+            />
+          </div>
 
-          <p>{files.length}</p>
+          <div className="flex flex-col gap-2">
+            <label className="text-foreground text-sm font-medium">Add Images (Optional)</label>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+            <Dropzone
+              onDrop={(accepted) => {
+                if (accepted.length + files.length > 5) {
+                  setError("You can upload up to 5 images only.");
+                  return;
+                }
+                setFiles((prev) => [...prev, ...accepted]);
+              }}
+              accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+            />
+          </div>
 
-          <div className="flex w-full flex-row-reverse gap-2">
-            <Button type="submit">Create</Button>
+          {files.length > 0 && (
+            <Card className="border-muted/50">
+              <CardContent className="p-4">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <span className="font-medium">{files.length}</span>
+                  <span>image{files.length !== 1 ? "s" : ""} selected</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
+          {error && (
+            <div className="bg-destructive/10 rounded-lg p-3">
+              <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -143,8 +142,12 @@ export function CreateMemory({}: Props) {
                 setFiles([]);
                 setOpen(false);
               }}
+              className="flex-1"
             >
               Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              Create Memory
             </Button>
           </div>
         </form>

@@ -1,22 +1,17 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { MemoryWithUrls } from "@/types/types";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { usePaginatedQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Images, Search } from "lucide-react";
+import Image from "next/image";
 import { Dispatch, SetStateAction, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -45,29 +40,44 @@ export function Memories() {
 
   return (
     <div className="flex flex-col gap-8">
-      <Input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="absolute top-4 right-1/2 left-1/2 w-[300px] -translate-x-1/2"
-        placeholder="Search a memory or date"
-      />
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
 
-      {filteredDays.map((day) => (
-        <DaySection key={day.creationDate} day={day} />
-      ))}
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="bg-background/50 border-muted/50 focus:border-primary/50 placeholder:text-muted-foreground h-12 pl-10"
+          placeholder="Search memories or dates..."
+        />
+      </div>
+
+      {/* Memories Grid */}
+      <div className="space-y-8">
+        {filteredDays.map((day) => (
+          <DaySection key={day.creationDate} day={day} />
+        ))}
+      </div>
 
       {status === "CanLoadMore" && <LoadMoreButton loadMore={loadMore} />}
     </div>
   );
 }
 
-// Component: Day Section
 function DaySection({ day }: { day: { creationDate: string; memories: MemoryWithUrls[] } }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p>{day.creationDate}</p>
-      <hr />
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+          <Calendar className="h-4 w-4" />
+          {day.creationDate}
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {day.memories.length} {day.memories.length === 1 ? "memory" : "memories"}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {day.memories.map((memory) => (
           <MemoryCard key={memory._id} memory={memory} />
         ))}
@@ -80,124 +90,181 @@ function DaySection({ day }: { day: { creationDate: string; memories: MemoryWith
 function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
   return (
     <Dialog>
-      <div className="flex w-[300px] flex-col gap-[2px]">
-        <DialogTrigger>
-          <MemoryPreview memory={memory} />
-        </DialogTrigger>
-      </div>
+      <DialogTrigger>
+        <div className="border-border hover:border-primary/30 cursor-pointer space-y-3 rounded-lg border p-4 transition-all hover:scale-[1.02] hover:shadow-lg">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-foreground line-clamp-3 text-start text-sm leading-relaxed">
+              {memory.content.length > 100
+                ? `${memory.content.substring(0, 100)}...`
+                : memory.content}
+            </p>
 
-      <DialogContent className="flex max-h-[80%] min-h-[40%] w-full !max-w-screen flex-col gap-10 overflow-auto md:flex-row lg:w-[90%]">
-        <DialogHeader className="flex flex-1 flex-col justify-between overflow-scroll">
-          <VisuallyHidden>
-            <DialogTitle>Memory details</DialogTitle>
-          </VisuallyHidden>
+            {memory.imageIds.length > 0 && (
+              <div className="bg-primary/10 flex items-center gap-1 rounded-full px-2 py-1">
+                <Images className="text-primary h-3 w-3" />
+                <span className="text-primary text-xs font-medium">{memory.imageIds.length}</span>
+              </div>
+            )}
+          </div>
 
-          <DialogDescription className="text-foreground text-justify text-sm">
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {new Date(memory._creationTime).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+
+            {memory.imageUrls.length > 0 && (
+              <div className="flex -space-x-1">
+                {memory.imageUrls.slice(0, 3).map((url, i) => (
+                  <div
+                    key={i}
+                    className="border-background bg-muted h-6 w-6 overflow-hidden rounded-full border-2"
+                  >
+                    <img
+                      src={url || ""}
+                      alt=""
+                      width={24}
+                      height={24}
+                      style={{ objectFit: "cover" }}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                ))}
+                {memory.imageUrls.length > 3 && (
+                  <div className="border-background bg-muted flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-medium">
+                    +{memory.imageUrls.length - 3}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogTrigger>
+
+      <DialogContent className="flex h-[90vh] w-full !max-w-screen flex-col p-8 md:w-[90vh] lg:w-[80vw] lg:flex-row">
+        {/* Content Section */}
+        <div className="flex flex-1 flex-col gap-4 overflow-scroll">
+          <h2 className="text-foreground text-xl font-semibold">Memory Details</h2>
+
+          <p className="text-foreground flex-1 overflow-y-auto text-base leading-relaxed whitespace-pre-wrap">
             {memory.content}
-          </DialogDescription>
+          </p>
 
           <MemoryDate memory={memory} />
-        </DialogHeader>
+        </div>
 
-        <MemoryImages memory={memory} />
+        {/* Images Section */}
+        <div className="min-w-0 flex-1">
+          <ImageGrid imageUrls={memory.imageUrls} />
+        </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Component: Memory Preview
-function MemoryPreview({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
-  return (
-    <div className="ring-secondary flex w-full cursor-pointer items-center justify-between rounded-lg border-2 p-3 text-sm hover:ring-2">
-      {memory.content.length > 20 ? `${memory.content.substring(0, 20)}...` : memory.content}
-
-      {memory.imageIds.length > 0 && (
-        <div className="flex items-center gap-1 text-xs">
-          <p className="text-muted-foreground">{memory.imageIds.length}</p>
-          <Images className="text-muted-foreground size-4" />
-        </div>
-      )}
-    </div>
   );
 }
 
 // Component: Memory Date
 function MemoryDate({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
   return (
-    <div className="flex flex-row-reverse">
-      <p className="text-secondary-foreground/50 text-xs">
-        from:{" "}
+    <div className="text-muted-foreground flex items-center gap-2 text-sm">
+      <Clock className="h-4 w-4" />
+      <span>
         {new Date(memory._creationTime).toLocaleString(undefined, {
           year: "numeric",
-          month: "numeric",
+          month: "long",
           day: "numeric",
           hour: "numeric",
           minute: "numeric",
         })}
-      </p>
-    </div>
-  );
-}
-
-// Component: Memory Images
-function MemoryImages({ memory }: { memory: Doc<"memories"> & { imageUrls: (string | null)[] } }) {
-  return memory.imageUrls.length > 0 ? <ImageGrid imageUrls={memory.imageUrls} /> : <NoImages />;
-}
-
-// Component: No Images
-function NoImages() {
-  return (
-    <div className="flex min-h-[300px] flex-1 items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
-        <Images className="text-muted-foreground size-4" />
-        <span className="text-muted-foreground text-xs">No Images for this memory...</span>
-      </div>
+      </span>
     </div>
   );
 }
 
 function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
   const [imageSliderImageIndex, setImageSliderImageIndex] = useState<number | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
-  return (
-    <>
-      <div className="flex flex-1 flex-col justify-center gap-2">
-        <img
-          onClick={() => setImageSliderImageIndex(0)}
-          src={imageUrls[0] || ""}
-          alt="memory-preview"
-          className="border-border h-[400px] cursor-pointer rounded-md border object-cover shadow-md transition-all hover:scale-101 hover:contrast-105"
-        />
+  const handleImageLoad = (index: number) => {
+    setLoadedImages((prev) => new Set(prev).add(index));
+  };
 
-        <div className="grid grid-cols-3 gap-2">
-          {imageUrls.slice(1, 3).map((url, i) => {
-            if (!url) return null;
+  const handleImageError = (index: number) => {
+    // Remove failed image from the list
+    console.warn(`Failed to load image at index ${index}`);
+  };
 
-            return (
-              <img
-                onClick={() => setImageSliderImageIndex(i + 1)}
-                key={i}
-                src={url}
-                alt={`memory-preview-${i}`}
-                className="border-border h-[150px] cursor-pointer rounded-md border object-cover shadow-md transition-all hover:scale-102"
-              />
-            );
-          })}
+  return imageUrls.length > 0 ? (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="text-foreground text-lg font-medium">Images</h3>
 
-          {imageUrls.length > 3 && (
-            <div
-              onClick={() => setImageSliderImageIndex(3)}
-              className="relative flex h-[150px] w-full cursor-pointer items-center justify-center transition-all hover:scale-102"
-            >
-              {imageUrls.slice(3).map((url, i) => (
-                <img
-                  className="border-border absolute h-[120px] w-[90%] rounded-md border object-cover"
-                  key={i}
-                  style={{ rotate: `${i * 7}deg` }}
-                  src={url || ""}
-                  alt="image"
-                />
-              ))}
+        <div className="space-y-4">
+          {/* Main Image */}
+          <div className="relative">
+            {!loadedImages.has(0) && (
+              <div className="bg-muted absolute inset-0 animate-pulse rounded-xl" />
+            )}
+            <Image
+              onClick={() => setImageSliderImageIndex(0)}
+              src={imageUrls[0] || ""}
+              alt="memory-preview"
+              width={400}
+              height={300}
+              className={`h-[300px] w-full cursor-pointer rounded-xl border object-cover shadow-md transition-all hover:scale-[1.02] hover:shadow-lg lg:h-[400px] ${
+                loadedImages.has(0) ? "opacity-100" : "opacity-0"
+              }`}
+              style={{ objectFit: "cover" }}
+              loading="lazy"
+              onLoad={() => handleImageLoad(0)}
+              onError={() => handleImageError(0)}
+            />
+          </div>
+
+          {/* Thumbnail Grid */}
+          {imageUrls.length === 3 && (
+            <div className="grid grid-cols-2 gap-3">
+              {imageUrls.slice(1, 3).map((url, i) => {
+                if (!url) return null;
+                const imageIndex = i + 1;
+
+                return (
+                  <div key={i} className="relative">
+                    {!loadedImages.has(imageIndex) && (
+                      <div className="bg-muted absolute inset-0 animate-pulse rounded-lg" />
+                    )}
+                    <img
+                      onClick={() => setImageSliderImageIndex(imageIndex)}
+                      src={url}
+                      alt={`memory-preview-${i}`}
+                      className={`h-[120px] w-full cursor-pointer rounded-lg border object-cover shadow-sm transition-all hover:scale-105 hover:shadow-md ${
+                        loadedImages.has(imageIndex) ? "opacity-100" : "opacity-0"
+                      }`}
+                      loading="lazy"
+                      onLoad={() => handleImageLoad(imageIndex)}
+                      onError={() => handleImageError(imageIndex)}
+                    />
+                  </div>
+                );
+              })}
+
+              {imageUrls.length > 4 && (
+                <div
+                  onClick={() => setImageSliderImageIndex(4)}
+                  className="bg-muted/50 relative flex h-[120px] w-full cursor-pointer items-center justify-center rounded-lg border transition-all hover:scale-105 hover:shadow-md"
+                >
+                  <div className="absolute inset-0 rounded-lg bg-black/20" />
+                  <div className="relative z-10 text-center">
+                    <Images className="mx-auto h-6 w-6 text-white" />
+                    <p className="text-xs font-medium text-white">+{imageUrls.length - 4} more</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -208,7 +275,21 @@ function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
         setImageSliderImageIndex={setImageSliderImageIndex}
         imageUrls={imageUrls}
       />
-    </>
+    </div>
+  ) : (
+    <div className="border-muted bg-muted/20 flex min-h-[400px] flex-1 items-center justify-center rounded-xl border-2 border-dashed">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div className="bg-muted rounded-full p-4">
+          <Images className="text-muted-foreground h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-lg font-medium">No Images</p>
+          <p className="text-muted-foreground max-w-xs text-sm">
+            This memory doesn&apos;t have any images attached
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -229,9 +310,9 @@ function ImageSlider({
     isOpen && (
       <div
         onClick={() => setImageSliderImageIndex(null)}
-        className="pointer-events-auto fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-black/50"
+        className="pointer-events-auto fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-black/80 backdrop-blur-sm"
       >
-        <div className="flex flex-1 items-center">
+        <div className="flex flex-1 items-center justify-center">
           <SliderButton
             direction="left"
             onClick={() =>
@@ -245,7 +326,7 @@ function ImageSlider({
             onClick={(e) => e.stopPropagation()}
             src={imageUrls[imageSliderImageIndex!] || ""}
             alt="memory-preview"
-            className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain shadow-lg"
+            className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain shadow-2xl"
           />
 
           <SliderButton
@@ -258,7 +339,7 @@ function ImageSlider({
           />
         </div>
 
-        <div className="grid w-1/2 grid-cols-5 gap-4 p-4">
+        <div className="grid w-full max-w-2xl grid-cols-5 gap-3 p-6">
           {imageUrls.map((url, i) => (
             <img
               onClick={(e) => {
@@ -266,14 +347,19 @@ function ImageSlider({
                 setImageSliderImageIndex(i);
               }}
               className={cn(
-                "border-border h-[120px] w-full cursor-pointer rounded-md border object-cover transition-all hover:scale-102",
+                "h-20 w-full cursor-pointer rounded-lg border-2 object-cover transition-all hover:scale-105",
                 {
-                  "ring-accent ring-ring ring ring-2": i === imageSliderImageIndex,
+                  "border-primary ring-primary/50 ring-2": i === imageSliderImageIndex,
+                  "border-muted/50": i !== imageSliderImageIndex,
                 },
               )}
               alt="memory-preview"
               key={i}
               src={url || ""}
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
           ))}
         </div>
@@ -299,11 +385,11 @@ function SliderButton({
         e.stopPropagation();
         onClick();
       }}
-      className={`bg-secondary/50 hover:bg-secondary/60 absolute ${
-        direction === "left" ? "left-4" : "right-4"
-      } flex cursor-pointer items-center justify-center rounded-full p-2`}
+      className={`absolute bg-white/10 hover:bg-white/20 ${
+        direction === "left" ? "left-6" : "right-6"
+      } flex h-12 w-12 cursor-pointer items-center justify-center rounded-full backdrop-blur-sm transition-all`}
     >
-      <Icon className="text-muted-foreground" />
+      <Icon className="h-6 w-6 text-white" />
     </button>
   );
 }
@@ -311,12 +397,30 @@ function SliderButton({
 // Component: Loading Skeleton
 function LoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div className="flex w-full flex-col gap-[2px]" key={i}>
-          <Skeleton className="h-[40px] w-full" />
-          <div className="flex flex-row-reverse">
-            <Skeleton className="h-[16px] w-[150px] !rounded-sm" />
+    <div className="space-y-8">
+      {Array.from({ length: 2 }).map((_, dayIndex) => (
+        <div key={dayIndex} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="border-muted/50">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       ))}
@@ -327,8 +431,18 @@ function LoadingSkeleton() {
 // Component: Empty State
 function EmptyState() {
   return (
-    <div className="mb-20 flex w-full flex-1 flex-col items-center justify-center">
-      <p className="text-secondary-foreground/50 text-xs">No memories yet...</p>
+    <div className="flex w-full flex-1 flex-col items-center justify-center py-16">
+      <div className="space-y-4 text-center">
+        <div className="bg-muted/50 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+          <Images className="text-muted-foreground h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-foreground text-lg font-semibold">No memories yet</h3>
+          <p className="text-muted-foreground max-w-sm text-sm">
+            Start capturing your precious moments by creating your first memory
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -336,9 +450,14 @@ function EmptyState() {
 // Component: Load More Button
 function LoadMoreButton({ loadMore }: { loadMore: (numItems: number) => void }) {
   return (
-    <button onClick={() => loadMore(10)} className="bg-primary mt-4 rounded p-2 text-white">
-      Load more days
-    </button>
+    <div className="flex justify-center pt-8">
+      <button
+        onClick={() => loadMore(10)}
+        className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-6 py-3 font-medium shadow-lg transition-all hover:scale-105"
+      >
+        Load more memories
+      </button>
+    </div>
   );
 }
 
