@@ -99,10 +99,10 @@ function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
                 : memory.content}
             </p>
 
-            {memory.imageIds.length > 0 && (
+            {memory.imageUrls.length > 0 && (
               <div className="bg-primary/10 flex items-center gap-1 rounded-full px-2 py-1">
                 <Images className="text-primary h-3 w-3" />
-                <span className="text-primary text-xs font-medium">{memory.imageIds.length}</span>
+                <span className="text-primary text-xs font-medium">{memory.imageUrls.length}</span>
               </div>
             )}
           </div>
@@ -226,47 +226,43 @@ function ImageGrid({ imageUrls }: { imageUrls: (string | null)[] }) {
             />
           </div>
 
-          {/* Thumbnail Grid */}
-          {imageUrls.length === 3 && (
-            <div className="grid grid-cols-2 gap-3">
-              {imageUrls.slice(1, 3).map((url, i) => {
-                if (!url) return null;
-                const imageIndex = i + 1;
+          {/* Thumbnail Grid under main image*/}
+          <div className="flex w-full justify-center gap-3">
+            {imageUrls.slice(1, 3).map((url, i) => {
+              if (!url) return null;
+              const imageIndex = i + 1;
 
-                return (
-                  <div key={i} className="relative">
-                    {!loadedImages.has(imageIndex) && (
-                      <div className="bg-muted absolute inset-0 animate-pulse rounded-lg" />
-                    )}
-                    <img
-                      onClick={() => setImageSliderImageIndex(imageIndex)}
-                      src={url}
-                      alt={`memory-preview-${i}`}
-                      className={`h-[120px] w-full cursor-pointer rounded-lg border object-cover shadow-sm transition-all hover:scale-105 hover:shadow-md ${
-                        loadedImages.has(imageIndex) ? "opacity-100" : "opacity-0"
-                      }`}
-                      loading="lazy"
-                      onLoad={() => handleImageLoad(imageIndex)}
-                      onError={() => handleImageError(imageIndex)}
-                    />
-                  </div>
-                );
-              })}
+              return (
+                <div key={i} className="max-w-1/2 flex-1">
+                  {!loadedImages.has(imageIndex) && (
+                    <div className="bg-muted absolute inset-0 flex-1 animate-pulse rounded-lg" />
+                  )}
 
-              {imageUrls.length > 4 && (
-                <div
-                  onClick={() => setImageSliderImageIndex(4)}
-                  className="bg-muted/50 relative flex h-[120px] w-full cursor-pointer items-center justify-center rounded-lg border transition-all hover:scale-105 hover:shadow-md"
-                >
-                  <div className="absolute inset-0 rounded-lg bg-black/20" />
-                  <div className="relative z-10 text-center">
-                    <Images className="mx-auto h-6 w-6 text-white" />
-                    <p className="text-xs font-medium text-white">+{imageUrls.length - 4} more</p>
-                  </div>
+                  <img
+                    onClick={() => setImageSliderImageIndex(imageIndex)}
+                    src={url}
+                    alt={`memory-preview-${i}`}
+                    className={`h-[120px] w-full cursor-pointer rounded-lg border object-cover shadow-sm transition-all hover:scale-105 hover:shadow-md ${
+                      loadedImages.has(imageIndex) ? "opacity-100" : "opacity-0"
+                    }`}
+                    loading="lazy"
+                    onLoad={() => handleImageLoad(imageIndex)}
+                    onError={() => handleImageError(imageIndex)}
+                  />
                 </div>
-              )}
-            </div>
-          )}
+              );
+            })}
+
+            {imageUrls.length > 4 && (
+              <div
+                onClick={() => setImageSliderImageIndex(4)}
+                className="bg-muted/50 flex h-[120px] flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border transition-all hover:scale-105 hover:shadow-md"
+              >
+                <Images className="mx-auto h-6 w-6 text-white" />
+                <p className="text-xs font-medium text-white">+{imageUrls.length - 3} more</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

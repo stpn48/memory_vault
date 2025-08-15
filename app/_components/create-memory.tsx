@@ -55,22 +55,27 @@ export function CreateMemory({}: Props) {
 
     // Upload files if any
     let uploadedUrls: string[] = [];
+
     if (files.length > 0) {
       setIsUploading(true);
-      try {
+
+      const { error } = await catchErrorAsync(async () => {
         const uploadResults = await startUpload(files);
+
         if (uploadResults) {
           uploadedUrls = uploadResults.map((result) => result.ufsUrl);
         }
-      } catch (error) {
-        toast.error("Failed to upload images. Please try again.");
+      })
+
+      if (error) {
+        toast.error("Failed to upload imgaes. Please try again.")
         setIsUploading(false);
-        return;
+        return
       }
+
       setIsUploading(false);
     }
 
-    // Combine uploaded URLs with existing image URLs
     const allImageUrls = [...imageUrls, ...uploadedUrls];
 
     await createMemory({
