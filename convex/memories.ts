@@ -2,11 +2,11 @@ import { formatDate } from "@/lib/utils";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { MemoryWithUrls } from "@/types/types";
 
 export const createMemory = mutation({
-  args: { content: v.string(), imageIds: v.array(v.id("_storage")) },
+  args: { content: v.string(), imageUrls: v.array(v.string()) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
 
@@ -14,17 +14,17 @@ export const createMemory = mutation({
       throw new Error("Not authenticated");
     }
 
-    if (args.imageIds.length > 5) {
+    if (args.imageUrls.length > 5) {
       throw new Error("Max 5 images allowed");
     }
 
-    const newTaskId = await ctx.db.insert("memories", {
+    const newMemoryId = await ctx.db.insert("memories", {
       content: args.content,
       userId,
-      imageIds: args.imageIds,
+      imageUrls: args.imageUrls,
     });
 
-    return newTaskId;
+    return newMemoryId;
   },
 });
 
@@ -35,52 +35,53 @@ export const getUserMemories = query({
   handler: async (ctx, { paginationOpts }) => {
     const userId = await getAuthUserId(ctx);
 
-    const page = await ctx.db
+    // Get memories for the user
+    const allMemories = await ctx.db
       .query("memories")
       .filter((q) => q.eq(q.field("userId"), userId))
       .order("desc")
-      .paginate(paginationOpts);
+      .collect();
 
-    const memoriesWithUrls = await Promise.all(
-      page.page.map(async (memory) => {
-        const imageUrls = await Promise.all(
-          (memory.imageIds ?? []).map((id) => ctx.storage.getUrl(id)),
-        );
-        return { ...memory, imageUrls };
-      }),
-    );
+    // Group by date first
+    const groupedByDate = groupMemoriesByDate(allMemories);
 
-    // group by date
-    let currDate = memoriesWithUrls.length
-      ? formatDate(memoriesWithUrls[0]._creationTime)
-      : null;
-
-    const grouped: {
-      creationDate: string;
-      memories: MemoryWithUrls[];
-    }[] = currDate ? [{ creationDate: currDate, memories: [] }] : [];
-
-    for (const memory of memoriesWithUrls) {
-      const memoryDate = formatDate(memory._creationTime);
-
-      if (currDate === memoryDate) {
-        grouped[grouped.length - 1].memories.push(memory);
-      } else {
-        currDate = memoryDate;
-        grouped.push({
-          creationDate: currDate,
-          memories: [memory],
-        });
-      }
-    }
+    // Then paginate the grouped results
+    const startIndex = paginationOpts.cursor ? parseInt(paginationOpts.cursor) : 0;
+    const endIndex = startIndex + paginationOpts.numItems;
+    const paginatedDays = groupedByDate.slice(startIndex, endIndex);
 
     return {
-      ...page,
-      page: grouped,
+      page: paginatedDays,
+      isDone: endIndex >= groupedByDate.length,
+      continueCursor: endIndex < groupedByDate.length ? endIndex.toString() : "",
     };
   },
 });
 
-export const createUploadUrl = mutation(async ({ storage }) => {
-  return await storage.generateUploadUrl();
-});
+function groupMemoriesByDate(memories: Doc<"memories">[]) {
+  if (memories.length === 0) return [];
+
+  // Group by date
+  let currDate = formatDate(memories[0]._creationTime);
+
+  const grouped: {
+    creationDate: string;
+    memories: Doc<"memories">[];
+  }[] = [{ creationDate: currDate, memories: [] }];
+
+  for (const memory of memories) {
+    const memoryDate = formatDate(memory._creationTime);
+
+    if (currDate === memoryDate) {
+      grouped[grouped.length - 1].memories.push(memory);
+    } else {
+      currDate = memoryDate;
+      grouped.push({
+        creationDate: currDate,
+        memories: [memory],
+      });
+    }
+  }
+
+  return grouped;
+}

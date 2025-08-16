@@ -6,8 +6,8 @@ import { Memories } from "./_components/memories";
 
 export default function Home() {
   return (
-    <div className="p-4 min-h-screen flex flex-col gap-10">
-      <section className="flex justify-between items-center">
+    <div className="flex min-h-screen flex-col gap-10 p-4">
+      <section className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your Memories</h1>
 
         <div className="w-[500px]"></div>
