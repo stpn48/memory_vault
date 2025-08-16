@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { MemoryWithUrls } from "@/types/types";
+import { DialogTitle } from "@radix-ui/react-dialog";
 import { usePaginatedQuery } from "convex/react";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Images, Search } from "lucide-react";
 import Image from "next/image";
@@ -149,6 +151,10 @@ function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
 
       <DialogContent className="flex h-[90vh] w-full !max-w-screen flex-col p-8 md:w-[90vh] lg:w-[80vw] lg:flex-row">
         {/* Content Section */}
+        <VisuallyHidden>
+          <DialogTitle>Memory Details</DialogTitle>
+        </VisuallyHidden>
+
         <div className="flex flex-1 flex-col gap-4 overflow-scroll">
           <h2 className="text-foreground text-xl font-semibold">Memory Details</h2>
 

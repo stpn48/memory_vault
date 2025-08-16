@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -10,23 +11,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { catchErrorAsync } from "@/lib/catch-error";
+import { useUploadThing } from "@/lib/uploadthing";
 import { useMutation } from "convex/react";
 import { Plus, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Dropzone } from "../../components/dropzone";
-import { useUploadThing } from "@/lib/uploadthing";
 
 type Props = {};
 
 export function CreateMemory({}: Props) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const createMemory = useMutation(api.memories.createMemory);
@@ -53,48 +51,49 @@ export function CreateMemory({}: Props) {
       return;
     }
 
+    setOpen(false);
     // Upload files if any
     let uploadedUrls: string[] = [];
 
-    if (files.length > 0) {
-      setIsUploading(true);
+    toast.promise(
+      async () => {
+        if (files.length > 0) {
+          setIsUploading(true);
 
-      const { error } = await catchErrorAsync(async () => {
-        const uploadResults = await startUpload(files);
+          const { error } = await catchErrorAsync(async () => {
+            const uploadResults = await startUpload(files);
 
-        if (uploadResults) {
-          uploadedUrls = uploadResults.map((result) => result.ufsUrl);
+            if (uploadResults) {
+              uploadedUrls = uploadResults.map((result) => result.ufsUrl);
+            }
+          });
+
+          if (error) {
+            toast.error("Failed to upload imgaes. Please try again.");
+            setIsUploading(false);
+            return;
+          }
+
+          setIsUploading(false);
         }
-      });
 
-      if (error) {
-        toast.error("Failed to upload imgaes. Please try again.");
-        setIsUploading(false);
-        return;
-      }
+        await createMemory({
+          content,
+          imageUrls: uploadedUrls,
+        });
+      },
+      {
+        success: "Memory created successfully...",
+        error: "Failed to create memory... Please try again.",
+        loading: "Creating memory...",
+      },
+    );
 
-      setIsUploading(false);
-    }
-
-    const allImageUrls = [...imageUrls, ...uploadedUrls];
-
-    await createMemory({
-      content,
-      imageUrls: allImageUrls,
-    });
-
-    toast.success("Memory created successfully!");
     setFiles([]);
-    setImageUrls([]);
-    setOpen(false);
   };
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeImageUrl = (index: number) => {
-    setImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -104,6 +103,7 @@ export function CreateMemory({}: Props) {
           <Plus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
+
       <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden">
         <DialogHeader className="space-y-3">
           <div className="flex items-center gap-2">
@@ -137,10 +137,10 @@ export function CreateMemory({}: Props) {
             <div className="flex flex-col gap-2">
               <label className="text-foreground text-sm font-medium">Add Images (Optional)</label>
 
-              {files.length + imageUrls.length < 5 && (
+              {files.length < 5 && (
                 <Dropzone
                   onDrop={(accepted) => {
-                    if (accepted.length + files.length + imageUrls.length > 5) {
+                    if (accepted.length + files.length >= 5) {
                       toast.error("You can upload up to 5 images only.");
                       return;
                     }
@@ -150,38 +150,21 @@ export function CreateMemory({}: Props) {
                 />
               )}
 
-              {files.length + imageUrls.length >= 5 && (
+              {files.length >= 5 && (
                 <div className="text-muted-foreground border-muted rounded-lg border-2 border-dashed p-4 text-center text-sm">
                   Maximum 5 images reached
                 </div>
               )}
             </div>
 
-            {(files.length > 0 || imageUrls.length > 0) && (
+            {files.length > 0 && (
               <Card className="border-muted/50 flex-shrink-0">
                 <CardContent className="">
                   <div className="text-muted-foreground mb-3 flex items-center gap-2 text-sm">
-                    <span className="font-medium">{files.length + imageUrls.length}</span>
-                    <span>image{files.length + imageUrls.length !== 1 ? "s" : ""} selected</span>
+                    <span className="font-medium">{files.length}</span>
+                    <span>image{files.length !== 1 ? "s" : ""} selected</span>
                   </div>
                   <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
-                    {/* Show uploaded image URLs */}
-                    {imageUrls.map((url, index) => (
-                      <div key={`url-${index}`} className="group relative">
-                        <img
-                          src={url}
-                          alt={`Uploaded image ${index + 1}`}
-                          className="h-24 w-full rounded-lg object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImageUrl(index)}
-                          className="bg-destructive text-destructive-foreground absolute top-1 right-1 rounded-full p-1 opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
                     {/* Show files to be uploaded */}
                     {files.map((file, index) => (
                       <div key={`file-${index}`} className="group relative">
@@ -211,7 +194,6 @@ export function CreateMemory({}: Props) {
               variant="outline"
               onClick={() => {
                 setFiles([]);
-                setImageUrls([]);
                 setOpen(false);
               }}
               className="flex-1"
