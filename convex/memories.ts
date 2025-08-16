@@ -2,11 +2,12 @@ import { formatDate } from "@/lib/utils";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-import { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
+import { DayWithMemories, MemoryWithUrls } from "@/types/types";
+import { Doc } from "./_generated/dataModel";
 
 export const createMemory = mutation({
-  args: { content: v.string(), imageUrls: v.array(v.string()) },
+  args: { content: v.string(), imageIds: v.array(v.id("_storage")) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
 
@@ -14,17 +15,17 @@ export const createMemory = mutation({
       throw new Error("Not authenticated");
     }
 
-    if (args.imageUrls.length > 5) {
+    if (args.imageIds.length > 5) {
       throw new Error("Max 5 images allowed");
     }
 
-    const newMemoryId = await ctx.db.insert("memories", {
+    const newTaskId = await ctx.db.insert("memories", {
       content: args.content,
       userId,
-      imageUrls: args.imageUrls,
+      imageIds: args.imageIds,
     });
 
-    return newMemoryId;
+    return newTaskId;
   },
 });
 
@@ -35,7 +36,7 @@ export const getUserMemories = query({
   handler: async (ctx, { paginationOpts }) => {
     const userId = await getAuthUserId(ctx);
 
-    // Get memories for the user
+    // Get all memories for the user
     const allMemories = await ctx.db
       .query("memories")
       .filter((q) => q.eq(q.field("userId"), userId))
@@ -44,18 +45,37 @@ export const getUserMemories = query({
 
     // Group by date first
     const groupedByDate = groupMemoriesByDate(allMemories);
-
+    
     // Then paginate the grouped results
     const startIndex = paginationOpts.cursor ? parseInt(paginationOpts.cursor) : 0;
     const endIndex = startIndex + paginationOpts.numItems;
     const paginatedDays = groupedByDate.slice(startIndex, endIndex);
+    
+    // Add image URLs to the paginated results
+    const daysWithUrls: DayWithMemories[] = await Promise.all(
+      paginatedDays.map(async (day) => ({
+        ...day,
+        memories: await Promise.all(
+          day.memories.map(async (memory) => {
+            const imageUrls = await Promise.all(
+              (memory.imageIds).map((id) => ctx.storage.getUrl(id)),
+            );
+            return { ...memory, imageUrls };
+          }),
+        ),
+      })),
+    );
 
     return {
-      page: paginatedDays,
+      page: daysWithUrls,
       isDone: endIndex >= groupedByDate.length,
       continueCursor: endIndex < groupedByDate.length ? endIndex.toString() : "",
     };
   },
+});
+
+export const createUploadUrl = mutation(async ({ storage }) => {
+  return await storage.generateUploadUrl();
 });
 
 function groupMemoriesByDate(memories: Doc<"memories">[]) {
