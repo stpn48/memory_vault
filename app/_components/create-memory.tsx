@@ -10,24 +10,27 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { catchErrorAsync } from "@/lib/catch-error";
 import { useMutation } from "convex/react";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Dropzone } from "../../components/dropzone";
+import { useUploadThing } from "@/lib/uploadthing";
 
 type Props = {};
 
 export function CreateMemory({}: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const createMemory = useMutation(api.memories.createMemory);
-  const createUploadUrl = useMutation(api.memories.createUploadUrl);
+  const { startUpload, isUploading: uploadThingUploading } = useUploadThing("imageUploader");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,115 +39,193 @@ export function CreateMemory({}: Props) {
     const content = formData.get("content") as string;
 
     if (!content) {
-      setError("Memory content is required.");
+      toast.error("Memory content is required.");
       return;
     }
 
     if (content.length > 9999) {
-      setError("Memory content must be less than 10000 characters.");
+      toast.error("Memory content must be less than 10000 characters.");
       return;
     }
 
     if (content.length < 1) {
-      setError("Memory content must be at least 1 character.");
+      toast.error("Memory content must be at least 1 character.");
       return;
     }
 
-    setOpen(false);
+    // Upload files if any
+    let uploadedUrls: string[] = [];
 
-    const imageIds: Id<"_storage">[] = [];
+    if (files.length > 0) {
+      setIsUploading(true);
 
-    toast.promise(
-      async () => {
-        for (const file of files) {
-          // Ask Convex for an upload URL
-          const uploadUrl = await createUploadUrl();
+      const { error } = await catchErrorAsync(async () => {
+        const uploadResults = await startUpload(files);
 
-          // POST file to the upload URL
-          const { error: uploadImageError } = await catchErrorAsync(async () => {
-            const res = await fetch(uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-            });
-
-            const { storageId } = await res.json();
-            imageIds.push(storageId as Id<"_storage">);
-          });
-
-          if (uploadImageError) {
-            toast.error(uploadImageError);
-            return;
-          }
+        if (uploadResults) {
+          uploadedUrls = uploadResults.map((result) => result.ufsUrl);
         }
+      })
 
-        await createMemory({ content, imageIds });
-      },
-      { loading: "Creating memory...", success: "Memory created!", error: "Error creating memory" },
-    );
+      if (error) {
+        toast.error("Failed to upload imgaes. Please try again.")
+        setIsUploading(false);
+        return
+      }
 
+      setIsUploading(false);
+    }
+
+    const allImageUrls = [...imageUrls, ...uploadedUrls];
+
+    await createMemory({
+      content,
+      imageUrls: allImageUrls,
+    });
+
+    toast.success("Memory created successfully!");
     setFiles([]);
+    setImageUrls([]);
+    setOpen(false);
   };
 
-  useEffect(() => {
-    if (error) {
-      const timeoutId = setTimeout(() => {
-        setError(null);
-      }, 3000);
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [error]);
+  const removeImageUrl = (index: number) => {
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild className="absolute right-4 bottom-4 cursor-pointer">
-        <Button className="h-10 w-10 rounded-full p-4 transition-all hover:scale-105">
-          <Plus className="size-4" />
+      <DialogTrigger asChild>
+        <Button className="fixed right-6 bottom-6 h-14 w-14 rounded-full p-0 shadow-lg transition-all hover:scale-110 hover:shadow-xl">
+          <Plus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80%]">
-        <DialogHeader>
-          <DialogTitle>New Memory</DialogTitle>
-          <DialogDescription>
-            Create a new memory. Drop an image or write some text.
-          </DialogDescription>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden flex flex-col">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 rounded-full p-2">
+              <Sparkles className="text-primary h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-semibold">Create New Memory</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-sm">
+                Capture this moment with text and images
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <Textarea
-            className="!max-h-[300px] resize-none overflow-scroll"
-            name="content"
-            placeholder="Write your memory here"
-          ></Textarea>
+        <form className="flex flex-col gap-6 flex-1" onSubmit={handleSubmit}>
+          <div className="flex-1 overflow-y-auto space-y-6">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="content" className="text-foreground text-sm font-medium">
+              What&apos;s on your mind?
+            </label>
 
-          <Dropzone
-            onDrop={(accepted) => {
-              if (accepted.length + files.length > 5) {
-                setError("You can upload up to 5 images only.");
-                return;
-              }
-              setFiles((prev) => [...prev, ...accepted]);
-            }}
-            accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
-          />
+            <Textarea
+              id="content"
+              className="border-muted/50 focus:border-primary/50 min-h-[120px] resize-none"
+              name="content"
+              placeholder="Write about your memory, thought, or experience..."
+            />
+          </div>
 
-          <p>{files.length}</p>
+          <div className="flex flex-col gap-2">
+            <label className="text-foreground text-sm font-medium">Add Images (Optional)</label>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+            {files.length + imageUrls.length < 5 && (
+              <Dropzone
+                onDrop={(accepted) => {
+                  if (accepted.length + files.length + imageUrls.length > 5) {
+                    toast.error("You can upload up to 5 images only.");
+                    return;
+                  }
+                  setFiles((prev) => [...prev, ...accepted]);
+                }}
+                accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+              />
+            )}
 
-          <div className="flex w-full flex-row-reverse gap-2">
-            <Button type="submit">Create</Button>
+            {files.length + imageUrls.length >= 5 && (
+              <div className="text-muted-foreground text-sm text-center p-4 border-2 border-dashed border-muted rounded-lg">
+                Maximum 5 images reached
+              </div>
+            )}
+          </div>
 
+          {(files.length > 0 || imageUrls.length > 0) && (
+            <Card className="border-muted/50 flex-shrink-0">
+              <CardContent className="">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm mb-3">
+                  <span className="font-medium">{files.length + imageUrls.length}</span>
+                  <span>image{files.length + imageUrls.length !== 1 ? "s" : ""} selected</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {/* Show uploaded image URLs */}
+                  {imageUrls.map((url, index) => (
+                    <div key={`url-${index}`} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Uploaded image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImageUrl(index)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Show files to be uploaded */}
+                  {files.map((file, index) => (
+                    <div key={`file-${index}`} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`File ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          </div>
+
+          <div className="flex gap-3 pt-4 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => {
                 setFiles([]);
+                setImageUrls([]);
                 setOpen(false);
               }}
+              className="flex-1"
             >
               Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={isUploading || uploadThingUploading}
+            >
+              {isUploading || uploadThingUploading ? "Uploading..." : "Create Memory"}
             </Button>
           </div>
         </form>
