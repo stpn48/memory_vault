@@ -59,27 +59,9 @@ export function CreateMemory() {
     }
 
     window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasChanges, uploadThingUploading]);
-
-  function validateContent(content: string) {
-    if (!content) {
-      toast.error("Memory content is required.");
-      return false;
-    }
-
-    if (content.length > 9999) {
-      toast.error("Memory content must be less than 10000 characters.");
-      return false;
-    }
-
-    if (content.length < 1) {
-      toast.error("Memory content must be at least 1 character.");
-      return false;
-    }
-
-    return true;
-  }
 
   async function handleSubmit() {
     if (!validateContent(content)) {
@@ -295,4 +277,23 @@ function useHasChanges({ content, files }: { content: string; files: File[] }) {
   }, [content, files]);
 
   return { hasChanges };
+}
+
+function validateContent(content: string) {
+  if (!content) {
+    toast.error("Memory content is required.");
+    return false;
+  }
+
+  if (content.length > 9999) {
+    toast.error("Memory content must be less than 10000 characters.");
+    return false;
+  }
+
+  if (content.length < 1) {
+    toast.error("Memory content must be at least 1 character.");
+    return false;
+  }
+
+  return true;
 }

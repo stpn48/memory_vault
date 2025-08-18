@@ -40,8 +40,10 @@ export const getUserMemories = query({
     const allMemories = await ctx.db
       .query("memories")
       .filter((q) => q.eq(q.field("userId"), userId))
-      .order("desc")
       .collect();
+
+    // Sort by user-selected date in descending order
+    allMemories.sort((a, b) => b.date - a.date);
 
     // Group by date first
     const groupedByDate = groupMemoriesByDate(allMemories);
@@ -63,7 +65,7 @@ function groupMemoriesByDate(memories: Doc<"memories">[]) {
   if (memories.length === 0) return [];
 
   // Group by date
-  let currDate = formatDate(memories[0]._creationTime);
+  let currDate = formatDate(memories[0].date);
 
   const grouped: {
     creationDate: string;
@@ -71,7 +73,7 @@ function groupMemoriesByDate(memories: Doc<"memories">[]) {
   }[] = [{ creationDate: currDate, memories: [] }];
 
   for (const memory of memories) {
-    const memoryDate = formatDate(memory._creationTime);
+    const memoryDate = formatDate(memory.date);
 
     if (currDate === memoryDate) {
       grouped[grouped.length - 1].memories.push(memory);

@@ -52,8 +52,6 @@ function Tab1() {
           </SelectContent>
         </Select>
       </SettingsRow>
-
-      <SettingsRow>Memory layout (calendar, grid, more... soon)</SettingsRow>
     </SettingsTabContent>
   );
 }
@@ -81,17 +79,9 @@ function SettingsTabContent({ children }: PropsWithChildren) {
   return <div className="flex flex-col gap-4">{children}</div>;
 }
 
-function SettingsRow({
-  children,
-  className,
-}: PropsWithChildren<{ className?: string }>) {
+function SettingsRow({ children, className }: PropsWithChildren<{ className?: string }>) {
   return (
-    <div
-      className={cn(
-        "flex items-center border-b pb-4 justify-between",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center justify-between border-b pb-4", className)}>
       {children}
     </div>
   );

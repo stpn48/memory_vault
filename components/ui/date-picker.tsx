@@ -16,24 +16,30 @@ interface DatePickerProps {
 
 export function DatePicker({ value, onChange }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState<Date>(value || new Date());
 
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setDate(value);
-    }
-  }, [value]);
+  // Use controlled state - always use the value prop if provided, otherwise use internal state
+  const currentDate = value || new Date();
 
   const handleTimeChange = (timeString: string) => {
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const newDate = new Date(date);
-    newDate.setHours(hours, minutes, 0);
-    setDate(newDate);
+    if (!timeString || !timeString.includes(":")) return;
+
+    const [hoursStr, minutesStr] = timeString.split(":");
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return;
+    }
+
+    const newDate = new Date(currentDate);
+    newDate.setHours(hours, minutes, 0, 0);
     onChange?.(newDate);
   };
 
   const getTimeString = () => {
-    return date.toTimeString().slice(0, 5);
+    const hours = currentDate.getHours().toString().padStart(2, "0");
+    const minutes = currentDate.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
   };
 
   return (
@@ -45,7 +51,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" id="date-picker" className="w-32 justify-between font-normal">
-              {date ? date.toLocaleDateString() : "Select date"}
+              {currentDate.toLocaleDateString()}
               <ChevronDownIcon />
             </Button>
           </PopoverTrigger>
@@ -57,14 +63,19 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
           >
             <Calendar
               mode="single"
-              selected={date}
+              selected={currentDate}
               captionLayout="dropdown"
+              disabled={(date) => date > new Date()}
               onSelect={(selectedDate) => {
                 if (selectedDate) {
                   // Preserve the time when selecting a new date
                   const newDate = new Date(selectedDate);
-                  newDate.setHours(date.getHours(), date.getMinutes(), date.getSeconds());
-                  setDate(newDate);
+                  newDate.setHours(
+                    currentDate.getHours(),
+                    currentDate.getMinutes(),
+                    currentDate.getSeconds(),
+                    currentDate.getMilliseconds(),
+                  );
                   onChange?.(newDate);
                 }
                 setOpen(false);

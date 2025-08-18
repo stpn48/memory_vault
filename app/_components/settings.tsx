@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { CircleUserRound, Cog } from "lucide-react";
 import { useState } from "react";
@@ -21,13 +16,13 @@ export function Settings({ open, setOpen }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="h-[65%] gap-0 p-0 flex flex-col w-full md:w-[600px] !max-w-screen">
+      <DialogContent className="flex h-[65%] w-full !max-w-screen flex-col gap-0 p-0 md:w-[600px]">
         <DialogHeader className="p-4">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
 
-        <section className="flex md:flex-row flex-col flex-1 border-t">
-          <section className="md:w-[180px] gap-1 w-full border-b md:border-r md:h-full flex md:flex-col p-2">
+        <section className="flex flex-1 flex-col border-t md:flex-row">
+          <section className="flex w-full gap-1 border-b p-2 md:h-full md:w-[180px] md:flex-col md:border-r">
             <SettingsTabButton
               tabNumber={1}
               text="General"
@@ -67,7 +62,7 @@ function SettingsTabButton({
   return (
     <button
       className={cn(
-        "hover:bg-secondary active:bg-foreground/10 flex items-center gap-2 transition-all rounded-sm cursor-pointer p-2",
+        "hover:bg-secondary active:bg-foreground/10 flex cursor-pointer items-center gap-2 rounded-sm p-2 transition-all",
         {
           "bg-secondary outline": currentTab === tabNumber,
         },

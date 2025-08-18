@@ -74,6 +74,7 @@ function DaySection({ day }: { day: { creationDate: string; memories: MemoryWith
           <Calendar className="h-4 w-4" />
           {day.creationDate}
         </div>
+
         <Badge variant="secondary" className="text-xs">
           {day.memories.length} {day.memories.length === 1 ? "memory" : "memories"}
         </Badge>
@@ -112,7 +113,7 @@ function MemoryCard({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
           <div className="text-muted-foreground flex items-center justify-between text-xs">
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {new Date(memory._creationTime).toLocaleTimeString(undefined, {
+              {new Date(memory.date).toLocaleTimeString(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -179,8 +180,9 @@ function MemoryDate({ memory }: { memory: Doc<"memories"> & { imageUrls: (string
   return (
     <div className="text-muted-foreground flex items-center gap-2 text-sm">
       <Clock className="h-4 w-4" />
+
       <span>
-        {new Date(memory._creationTime).toLocaleString(undefined, {
+        {new Date(memory.date).toLocaleString(undefined, {
           year: "numeric",
           month: "long",
           day: "numeric",
