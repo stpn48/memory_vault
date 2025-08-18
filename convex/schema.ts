@@ -9,6 +9,7 @@ const schema = defineSchema({
     userId: v.id("users"),
     content: v.string(),
     imageUrls: v.array(v.string()),
+    date: v.number(),
   }),
 });
 

@@ -6,7 +6,7 @@ import { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 export const createMemory = mutation({
-  args: { content: v.string(), imageUrls: v.array(v.string()) },
+  args: { content: v.string(), imageUrls: v.array(v.string()), date: v.number() },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
 
@@ -22,6 +22,7 @@ export const createMemory = mutation({
       content: args.content,
       userId,
       imageUrls: args.imageUrls,
+      date: args.date,
     });
 
     return newMemoryId;

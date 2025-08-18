@@ -31,7 +31,7 @@ export function Dropzone({
     <div
       {...getRootProps()}
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed p-6 transition-colors",
+        "hover:border-muted-foreground flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed p-6 transition-colors",
         isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25",
         isDragReject && "border-destructive bg-destructive/5",
         className,
