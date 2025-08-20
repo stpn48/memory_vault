@@ -29,6 +29,69 @@ export const createMemory = mutation({
   },
 });
 
+export const deleteMemory = mutation({
+  args: { id: v.id("memories") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const memory = await ctx.db.get(args.id);
+
+    if (!memory) {
+      throw new Error("Memory not found");
+    }
+
+    if (memory.userId !== userId) {
+      throw new Error("Not authorized to delete this memory");
+    }
+
+    await ctx.db.delete(args.id);
+
+    return { success: true };
+  },
+});
+
+export const editMemory = mutation({
+  args: {
+    id: v.id("memories"),
+    content: v.string(),
+    imageUrls: v.array(v.string()),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    if (args.imageUrls.length > 5) {
+      throw new Error("Max 5 images allowed");
+    }
+
+    const memory = await ctx.db.get(args.id);
+
+    if (!memory) {
+      throw new Error("Memory not found");
+    }
+
+    if (memory.userId !== userId) {
+      throw new Error("Not authorized to edit this memory");
+    }
+
+    await ctx.db.patch(args.id, {
+      content: args.content,
+      imageUrls: args.imageUrls,
+      date: args.date,
+    });
+
+    return args.id;
+  },
+});
+
 export const getUserMemories = query({
   args: {
     paginationOpts: paginationOptsValidator,

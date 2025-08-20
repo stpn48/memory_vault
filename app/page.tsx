@@ -2,7 +2,7 @@
 
 import { AvatarMenu } from "./_components/avatar-menu";
 import { CreateMemory } from "./_components/create-memory";
-import { Memories } from "./_components/memories";
+import { Memories } from "./_components/memories/memories";
 
 export default function Home() {
   return (
