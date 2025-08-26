@@ -1,3 +1,4 @@
+import { deleteMemoryImagesFromUploadThing } from "@/app/actions/uploadthing-actions";
 import { Dropzone } from "@/components/dropzone";
 import {
   AlertDialog,
@@ -28,22 +29,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import { catchErrorAsync } from "@/lib/catch-error";
 import { useUploadThing } from "@/lib/uploadthing";
 import { MemoryWithUrls } from "@/types/types";
+import { useMutation } from "convex/react";
 import { Ellipsis, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { validateContent } from "../create-memory";
-import {
-  deleteMemoryImagesFromUploadThing,
-  deleteUploadThingFiles,
-} from "@/app/actions/uploadthing-actions";
-import { catchErrorAsync } from "@/lib/catch-error";
-import { api } from "@/convex/_generated/api";
-import { useMutation } from "convex/react";
 
 export function MemoryActions({ memory }: { memory: MemoryWithUrls }) {
   const [editMemoryDialogOpen, setEditMemoryDialogOpen] = useState(false);
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+
+  const deleteMemory = useMutation(api.memories.deleteMemory);
+
+  function handleDeleteMemory() {
+    toast.promise(
+      async () => {
+        await deleteMemory({ id: memory._id });
+      },
+      {
+        loading: "Deleting...",
+        success: "Memory deleted",
+        error: "Failed to delete memory",
+      },
+    );
+  }
 
   return (
     <>
@@ -57,9 +70,28 @@ export function MemoryActions({ memory }: { memory: MemoryWithUrls }) {
           <DropdownMenuItem onClick={() => setEditMemoryDialogOpen(true)}>
             Edit Memory
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">DeleteMemory</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteAlertOpen(true)}>
+            Delete Memory
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your memory.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="destructive" onClick={handleDeleteMemory}>
+              Delete Memory
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {editMemoryDialogOpen && (
         <EditMemoryDialog

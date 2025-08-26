@@ -16,9 +16,7 @@ import { CircleUser, LogOut } from "lucide-react";
 import { Settings } from "./settings";
 import { useState } from "react";
 
-type Props = {};
-
-export function AvatarMenu({}: Props) {
+export function AvatarMenu() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const currentUser = useQuery(api.auth.currentUser);
@@ -26,7 +24,7 @@ export function AvatarMenu({}: Props) {
   const { signOut } = useAuthActions();
 
   if (currentUser === undefined) {
-    return(
+    return (
       <Avatar>
         <AvatarFallback className="animate-pulse"></AvatarFallback>
       </Avatar>
@@ -48,10 +46,7 @@ export function AvatarMenu({}: Props) {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent side="bottom">
-          <DropdownMenuItem
-            disabled
-            className="flex items-center gap-2 text-foreground"
-          >
+          <DropdownMenuItem disabled className="text-foreground flex items-center gap-2">
             <CircleUser className="size-4" />
             {currentUser.email}
           </DropdownMenuItem>
@@ -67,10 +62,10 @@ export function AvatarMenu({}: Props) {
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            className="flex group items-center text-red-500 focus:text-red-400"
+            className="group flex items-center text-red-500 focus:text-red-400"
             onClick={signOut}
           >
-            <LogOut className="size-4 group-hover:text-red-400 text-red-500" />
+            <LogOut className="size-4 text-red-500 group-hover:text-red-400" />
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>

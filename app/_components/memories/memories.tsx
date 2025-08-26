@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { MemoryWithUrls } from "@/types/types";
 import { usePaginatedQuery } from "convex/react";
-import { Images, Search } from "lucide-react";
+import { Box, Search } from "lucide-react";
 import { useState } from "react";
 import { DaySection } from "./day-section";
 
@@ -98,7 +98,7 @@ function EmptyState() {
     <div className="flex w-full flex-1 flex-col items-center justify-center py-16">
       <div className="space-y-4 text-center">
         <div className="bg-muted/50 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-          <Images className="text-muted-foreground h-8 w-8" />
+          <Box className="text-muted-foreground h-8 w-8" />
         </div>
         <div className="space-y-2">
           <h3 className="text-foreground text-lg font-semibold">No memories yet</h3>

@@ -1,9 +1,13 @@
+import { api } from "@/convex/_generated/api";
+import { auth } from "@/convex/auth";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
-const auth = (req: Request) => ({ id: "fakeId" }); // Fake auth function
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
@@ -19,15 +23,28 @@ export const ourFileRouter = {
     },
   })
     // Set permissions and file types for this FileRoute
-    .middleware(async ({ req }) => {
-      // This code runs on your server before upload
-      const user = await auth(req);
+    .middleware(async () => {
+      try {
+        // Get the auth token from the request
+        const token = await convexAuthNextjsToken();
+        if (!token) {
+          throw new UploadThingError("UNAUTHORIZED");
+        }
 
-      // If you throw, the user will not be able to upload
-      if (!user) throw new UploadThingError("Unauthorized");
+        // Set the token for the Convex client
+        convex.setAuth(token);
 
-      // Whatever is returned here is accessible in onUploadComplete as `metadata`
-      return { userId: user.id };
+        // Fetch the current user from Convex
+        const user = await convex.query(api.auth.currentUser);
+        if (!user) {
+          throw new UploadThingError("UNAUTHORIZED");
+        }
+
+        return { userId: user._id };
+      } catch (error) {
+        console.error("Auth error in UploadThing middleware:", error);
+        throw new UploadThingError("UNAUTHORIZED");
+      }
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // This code RUNS ON YOUR SERVER after upload
