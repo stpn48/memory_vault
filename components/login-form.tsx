@@ -1,14 +1,11 @@
-import { GalleryVerticalEnd } from "lucide-react";
+import { Box, GalleryVerticalEnd } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useTheme } from "next-themes";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const { signIn } = useAuthActions();
   const { resolvedTheme } = useTheme();
 
@@ -17,16 +14,11 @@ export function LoginForm({
       <form>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
-            <a
-              href="#"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
-              </div>
-              <span className="sr-only">Acme Inc.</span>
-            </a>
-            <h1 className="text-xl font-bold">Welcome to Acme Inc.</h1>
+            <div className="flex size-8 items-center justify-center rounded-md">
+              <Box className="size-6" />
+            </div>
+            <span className="sr-only">Memory Vault</span>
+            <h1 className="text-xl font-bold">Welcome to Memory Vault</h1>
           </div>
 
           <Button
@@ -73,8 +65,8 @@ export function LoginForm({
         </div>
       </form>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
+        <a href="#">Privacy Policy</a>.
       </div>
     </div>
   );
