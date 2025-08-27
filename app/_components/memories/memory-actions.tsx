@@ -123,7 +123,7 @@ function EditMemoryDialog({
   const { hasChanges } = useHasChanges({
     initialContent: memory.content,
     newContent: content,
-    initialFiles: memory.imageUrls,
+    imagesToDelete: originalImagesToDelete,
     newFiles: newImages,
   });
 
@@ -387,22 +387,22 @@ function useHasChanges({
   newContent,
   initialContent,
   newFiles,
-  initialFiles,
+  imagesToDelete,
 }: {
   initialContent: string;
   newContent: string;
   newFiles: File[];
-  initialFiles: string[];
+  imagesToDelete: string[];
 }) {
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    if (newContent !== initialContent || initialFiles.length !== newFiles.length) {
+    if (newContent !== initialContent || newFiles.length > 0 || imagesToDelete.length > 0) {
       setHasChanges(true);
     } else {
       setHasChanges(false);
     }
-  }, [newContent, newFiles, initialContent, initialFiles]);
+  }, [newContent, newFiles, initialContent, imagesToDelete]);
 
   return { hasChanges };
 }
